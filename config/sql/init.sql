@@ -1,0 +1,17 @@
+CREATE TABLE glideMart.user
+(
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    account VARCHAR(32) NOT NULL,
+    username VARCHAR(64) NOT NULL,
+    email VARCHAR(128) NULL,
+    phone_number VARCHAR(20) NULL,
+    avatar VARCHAR(512) NULL,
+    status TINYINT DEFAULT 1 NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    account_changed_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
+    UNIQUE KEY (account),
+    UNIQUE KEY (phone_number)
+)AUTO_INCREMENT = 108000;

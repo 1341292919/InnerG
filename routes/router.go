@@ -1,0 +1,24 @@
+package routes
+
+import (
+	api "InnerG/api/v1"
+	"InnerG/pkg/jwt"
+	"github.com/gin-gonic/gin"
+)
+
+func NewRouter() *gin.Engine {
+	r := gin.Default()
+	v1 := r.Group("api/v1")
+	{
+		v1.POST("user/email/code", api.UserGetEmailCodeHandler())
+		v1.POST("user/register", api.UserVerifyEmailAndRegister())
+		v1.POST("user/login", api.UserLoginRegister())
+		v1.POST("user/email/login", api.UserVerifyEmailAndLogin())
+		authed := v1.Group("/") // 需要登陆保护
+		authed.Use(jwt.Auth())
+		{
+			authed.POST("user/upload/avatar", api.UserUploadAvatar())
+		}
+	}
+	return r
+}

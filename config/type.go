@@ -1,0 +1,44 @@
+package config
+
+type config struct {
+	MySQL   mySQL
+	OSS     oss
+	Redis   redis
+	Smtp    smtp
+	Service service
+}
+type mySQL struct {
+	Addr     string
+	Database string
+	Username string
+	Password string
+	Charset  string
+}
+
+type redis struct {
+	Addr     string
+	Username string
+	Password string
+}
+
+type oss struct {
+	Bucket    string
+	AccessKey string
+	SecretKey string
+	Domain    string
+	Region    string
+}
+
+type smtp struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+	From     string
+	FromName string `mapstructure:"from_name"`
+}
+
+type service struct {
+	Address    string `mapstructure:"address"`
+	PrivateKey string `mapstructure:"private-key"`
+}
