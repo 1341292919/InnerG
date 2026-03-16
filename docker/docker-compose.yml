@@ -1,7 +1,7 @@
 services:
   # Redis 服务，用于缓存、会话管理等，提供键值存储功能
-  glideMart-redis:
-    container_name: glideMart-redis
+  InnerG-redis:
+    container_name: InnerG-redis
     image: redis:bookworm
     volumes:
       - ./data/redis:/data
@@ -10,23 +10,37 @@ services:
     env_file:
       - "./env/redis.env"
     networks:
-      - glideMart
+      - InnerG
 
   # MySQL 服务，提供关系型数据库，用于存储结构化数据
-  glideMart-mysql:
-    container_name: glideMart-mysql
+  InnerG-mysql:
+    container_name: InnerG-mysql
     image: mysql:9.0.1
     env_file:
       - "./env/mysql.env"
     ports:
       - "3306:3306"
     networks:
-      - glideMart
+      - InnerG
     volumes:
       - ../config/sql:/docker-entrypoint-initdb.d
       - ./data/mysql:/var/lib/mysql
+    # MongoDB 服务
+  InnerG-mongodb:
+      container_name: InnerG-mongodb
+      image: mongodb/mongodb-community-server:latest
+      ports:
+        - "27017:27017"  # MongoDB 默认端口
+      volumes:
+        - ./data/mongodb:/data/db
+        - ../config/mongodb:/docker-entrypoint-initdb.d
+      env_file:
+        - "./env/mongodb.env"
+      networks:
+        - InnerG
+      restart: unless-stopped
 
 networks:
-  glideMart:
+  InnerG:
     driver: bridge
-    name: glideMart
+    name: InnerG

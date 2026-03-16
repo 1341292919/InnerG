@@ -1,7 +1,7 @@
 package errno
 
 var (
-	ParamFileMiss        = NewErr(20000, "file miss")
+	ParamMissing         = NewErr(20000, "file miss")
 	Success              = NewErr(10000, "success")
 	InternalServiceError = NewErr(50000, "internal server error")
 	AuthError            = NewErr(AuthErrorCode, "鉴权失败")            // 鉴权失败，通常是内部错误，如解析失败

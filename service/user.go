@@ -4,15 +4,12 @@ import (
 	"InnerG/dao"
 	"InnerG/dao/db/model"
 	"InnerG/pkg/constants"
-	"InnerG/pkg/ctl"
 	"InnerG/pkg/utils"
 	"InnerG/types"
 	"context"
 	"fmt"
 	"log"
-	"mime/multipart"
 	"sync"
-	"time"
 )
 
 var UserSrvIns *UserSrv
@@ -35,7 +32,6 @@ func (s *UserSrv) GetEmailCode(ctx context.Context, req *types.UserGetEmailCodeR
 	if err != nil {
 		return err
 	}
-
 	// 发送验证码
 	return utils.MailSendCode(req.Email, code)
 }
@@ -64,9 +60,8 @@ func (s *UserSrv) VerifyEmailAndRegister(ctx context.Context, req *types.UserVer
 
 	// 插入数据库
 	newUser := &model.User{
-		Email:            req.Email,
-		Status:           model.Active,
-		AccountChangedAt: time.Now(),
+		Email:  req.Email,
+		Status: model.Active,
 	}
 	newUser.SetDefaultAvatar()
 	if err = newUser.SetPassword(req.Password); err != nil {
@@ -115,9 +110,4 @@ func (s *UserSrv) VerifyEmailAndLogin(ctx context.Context, req *types.UserVerify
 		return nil, fmt.Errorf("该邮箱未绑定账号，请先注册")
 	}
 	return u, nil
-}
-
-func (s *UserSrv) UploadAvatar(ctx context.Context, file multipart.File, fileSize int64) error {
-	u := ctl.GetUserInfo(ctx)
-	return nil
 }

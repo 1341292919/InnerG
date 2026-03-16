@@ -6,6 +6,8 @@ type config struct {
 	Redis   redis
 	Smtp    smtp
 	Service service
+	Api     api
+	MongoDb mongodb
 }
 type mySQL struct {
 	Addr     string
@@ -41,4 +43,17 @@ type smtp struct {
 type service struct {
 	Address    string `mapstructure:"address"`
 	PrivateKey string `mapstructure:"private-key"`
+}
+
+type api struct {
+	Key   string
+	Model string
+	Url   string
+}
+
+type mongodb struct {
+	Addr     string
+	Database string
+	Username string
+	Password string
 }

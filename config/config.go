@@ -12,7 +12,9 @@ var (
 	Redis        *redis
 	Smtp         *smtp
 	Service      *service
+	Api          *api
 	Oss          *oss
+	MongoDb      *mongodb
 	runtimeViper = viper.New()
 )
 
@@ -51,5 +53,6 @@ func configMapping() {
 	Smtp = &c.Smtp
 	Oss = &c.OSS
 	Service = &c.Service
-
+	Api = &c.Api
+	MongoDb = &c.MongoDb
 }

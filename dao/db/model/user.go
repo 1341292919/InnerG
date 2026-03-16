@@ -3,19 +3,16 @@ package model
 import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"time"
 )
 
 type User struct {
 	gorm.Model
-	Account          string
-	Username         string
-	Email            string
-	PhoneNumber      string
-	Avatar           string
-	Status           int8
-	PasswordHash     string
-	AccountChangedAt time.Time
+	Account      string
+	Username     string
+	Email        string
+	Avatar       string
+	Status       int8
+	PasswordHash string
 }
 
 const (
@@ -41,5 +38,4 @@ func (u *User) CheckPassword(password string) bool {
 
 // SetDefaultAvatar 设置默认头像
 func (u *User) SetDefaultAvatar() {
-	u.Avatar = constants.DefaultAvatarUrl
 }

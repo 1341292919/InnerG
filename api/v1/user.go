@@ -94,17 +94,3 @@ func UserVerifyEmailAndLogin() gin.HandlerFunc {
 		pack.RespData(ctx, pack.BuildUser(u))
 	}
 }
-
-func UserUploadAvatar() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		//_, fileHeader, _ := ctx.Request.FormFile("file")
-		//if fileHeader == nil {
-		//	err := errno.ParamFileMiss.WithMessage("file request")
-		//	pack.RespError(ctx, err)
-		//	return
-		//}
-		l := service.GetUserSrv()
-		l.UploadAvatar(ctx.Request.Context(), nil, 10)
-		pack.RespSuccess(ctx)
-	}
-}
