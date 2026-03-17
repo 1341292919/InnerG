@@ -21,14 +21,9 @@ func InitMongoDb() {
 		panic(err)
 	}
 	MongoDB = client.Database(config.MongoDb.Database)
-	log.Println("✅ MongoDB 连接成功！")
 }
 
 func MongoDbDSN() string {
-	log.Println(config.MongoDb.Username)
-	log.Println(config.MongoDb.Password)
-	log.Println(config.MongoDb.Addr)
-	log.Println(config.MongoDb.Database)
 	return fmt.Sprintf(
 		"mongodb://%s:%s@%s/%s?authSource=%s",
 		config.MongoDb.Username, config.MongoDb.Password,

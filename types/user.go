@@ -11,7 +11,7 @@ type UserVerifyEmailAndRegisterReq struct {
 }
 
 type UserLoginReq struct {
-	Email    string `form:"email" json:"email"`
+	Account  string `form:"account" json:"account"`
 	Password string `form:"password" json:"password"`
 }
 
@@ -24,6 +24,7 @@ type User struct {
 	Id        string
 	Email     string
 	UserName  string
+	Account   string
 	Avatar    string
 	CreatedAt int64
 	UpdatedAT int64

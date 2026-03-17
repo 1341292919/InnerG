@@ -8,17 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type reqBody struct {
-	Model    string    `json:"model"`    // 添加标签，指定JSON中的键名为小写
-	Messages []message `json:"messages"` // 添加标签
-	Stream   bool      `json:"stream"`   // 添加标签
-}
-
-type message struct {
-	Role    string `json:"role"`    // 添加标签
-	Content string `json:"content"` // 添加标签
-}
-
 func NewContactHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Header("Content-Type", "text/event-stream")
@@ -52,8 +41,11 @@ func NewChatSession() gin.HandlerFunc {
 	}
 }
 
-func NewStreamChat() gin.HandlerFunc {
+func StreamChat() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		ctx.Header("Content-Type", "text/event-stream")
+		ctx.Header("Cache-Control", "no-cache")
+		ctx.Header("Connection", "keep-alive")
 		var req types.StreamChatReq
 		if err := ctx.ShouldBind(&req); err != nil {
 			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))

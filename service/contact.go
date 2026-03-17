@@ -16,7 +16,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -118,8 +117,8 @@ func (svc *ContactSrv) NewChatSession(ctx context.Context, req *types.NewChatSes
 		UpdatedAt: time.Now(),
 		Messages: []MongoModel.Message{
 			{
-				Role:      constants.CommonUserRole,
-				Message:   req.InitialMessage,
+				Role:      constants.CommonSystemRole,
+				Message:   constants.CommonOpener,
 				CreatedAt: time.Now(),
 			},
 		},

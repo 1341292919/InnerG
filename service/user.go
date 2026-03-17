@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 )
 
@@ -73,11 +74,19 @@ func (s *UserSrv) VerifyEmailAndRegister(ctx context.Context, req *types.UserVer
 
 }
 
+// Login 同时支持邮箱或者账号登录
 func (s *UserSrv) Login(ctx context.Context, req *types.UserLoginReq) (*model.User, error) {
 	userDao := dao.NewUserDao(ctx)
-	u, exist, err := userDao.Db.IsUserExistByEmail(ctx, req.Email)
+	var u *model.User
+	var exist bool
+	var err error
+	switch {
+	case IsEmail(req.Account):
+		u, exist, err = userDao.Db.IsUserExistByEmail(ctx, req.Account)
+	default:
+		u, exist, err = userDao.Db.IsUserExistByAccount(ctx, req.Account)
+	}
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 	if !exist || !u.CheckPassword(req.Password) {
@@ -110,4 +119,8 @@ func (s *UserSrv) VerifyEmailAndLogin(ctx context.Context, req *types.UserVerify
 		return nil, fmt.Errorf("该邮箱未绑定账号，请先注册")
 	}
 	return u, nil
+}
+
+func IsEmail(str string) bool {
+	return strings.Contains(str, "@")
 }
