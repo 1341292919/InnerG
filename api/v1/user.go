@@ -2,6 +2,7 @@ package v1
 
 import (
 	"InnerG/pack"
+	"InnerG/pkg/errno"
 	"InnerG/pkg/jwt"
 	"InnerG/service"
 	"InnerG/types"
@@ -13,8 +14,7 @@ func UserGetEmailCodeHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req types.UserGetEmailCodeReq
 		if err := ctx.ShouldBind(&req); err != nil {
-			// log
-			pack.RespError(ctx, err)
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
 			return
 		}
 
@@ -34,8 +34,7 @@ func UserVerifyEmailAndRegister() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req types.UserVerifyEmailAndRegisterReq
 		if err := ctx.ShouldBind(&req); err != nil {
-			// log
-			pack.RespError(ctx, err)
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
 			return
 		}
 		l := service.GetUserSrv()
@@ -52,8 +51,7 @@ func UserLoginRegister() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req types.UserLoginReq
 		if err := ctx.ShouldBind(&req); err != nil {
-			// log
-			pack.RespError(ctx, err)
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
 			return
 		}
 		l := service.GetUserSrv()
@@ -76,7 +74,7 @@ func UserVerifyEmailAndLogin() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req types.UserVerifyEmailAndLoginReq
 		if err := ctx.ShouldBind(&req); err != nil {
-			pack.RespError(ctx, err)
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
 			return
 		}
 		l := service.GetUserSrv()
@@ -92,5 +90,22 @@ func UserVerifyEmailAndLogin() gin.HandlerFunc {
 		}
 		pack.WithToken(ctx, access, refresh)
 		pack.RespData(ctx, pack.BuildUser(u))
+	}
+}
+
+func UserUpdateAccount() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var req types.UpdateUserAccountReq
+		if err := ctx.ShouldBind(&req); err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
+			return
+		}
+		l := service.GetUserSrv()
+		err := l.UpdateUserAccount(ctx.Request.Context(), req.Account)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.RespSuccess(ctx)
 	}
 }

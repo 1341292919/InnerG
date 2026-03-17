@@ -4,11 +4,12 @@ import (
 	"InnerG/dao"
 	"InnerG/dao/db/model"
 	"InnerG/pkg/constants"
+	"InnerG/pkg/ctl"
 	"InnerG/pkg/utils"
 	"InnerG/types"
 	"context"
 	"fmt"
-	"log"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -111,7 +112,6 @@ func (s *UserSrv) VerifyEmailAndLogin(ctx context.Context, req *types.UserVerify
 
 	u, exist, err := userDao.Db.IsUserExistByEmail(ctx, req.Email)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 
@@ -121,6 +121,21 @@ func (s *UserSrv) VerifyEmailAndLogin(ctx context.Context, req *types.UserVerify
 	return u, nil
 }
 
+func (s *UserSrv) UpdateUserAccount(ctx context.Context, account string) error {
+	u := ctl.GetUserInfo(ctx)
+	userDao := dao.NewUserDao(ctx)
+	user, exist, err := userDao.Db.IsUserExistByAccount(ctx, account)
+	if err != nil {
+		return err
+	}
+	if exist {
+		if u.Id == strconv.FormatInt(int64(user.ID), 10) {
+			return fmt.Errorf("新账号与原账号相同，无需修改")
+		}
+		return fmt.Errorf("该账号已存在")
+	}
+	return userDao.Db.UpdateUserAccount(ctx, account, u.Id)
+}
 func IsEmail(str string) bool {
 	return strings.Contains(str, "@")
 }

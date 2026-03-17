@@ -17,6 +17,9 @@ func NewRouter() *gin.Engine {
 		authed := v1.Group("/") // 需要登陆保护
 		authed.Use(jwt.Auth())
 		{
+			// 用户部分
+			authed.POST("user/update/account", api.UserUpdateAccount())
+
 			// 咨询聊天部分
 			authed.GET("contact", api.NewContactHandler())
 			authed.POST("contact/session/start", api.NewChatSession())
