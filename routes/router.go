@@ -18,9 +18,10 @@ func NewRouter() *gin.Engine {
 		authed.Use(jwt.Auth())
 		{
 			authed.GET("contact", api.NewContactHandler())
-			authed.GET("test", api.TeCtxDone())
 			authed.POST("contact/session/start", api.NewChatSession())
 			authed.POST("contact/session/stream", api.NewStreamChat())
+			authed.GET("contact/session/list", api.GetUserSession())
+			authed.GET("contact/session/detail", api.GetUserSessionDetail())
 		}
 	}
 	return r

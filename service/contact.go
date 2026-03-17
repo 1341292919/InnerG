@@ -4,6 +4,7 @@ import (
 	"InnerG/config"
 	"InnerG/dao"
 	MongoModel "InnerG/dao/mongo/model"
+	"InnerG/pack"
 	"InnerG/pkg/constants"
 	"InnerG/pkg/ctl"
 	"InnerG/pkg/errno"
@@ -15,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -184,15 +186,43 @@ loop:
 	return dao.Mongo.InsertMessageToSession(ctx.Request.Context(), chatHistory.SessionID,
 		[]MongoModel.Message{
 			{
-				Role:    constants.CommonUserRole,
-				Message: req.UserMessage,
+				Role:      constants.CommonUserRole,
+				Message:   req.UserMessage,
+				CreatedAt: time.Now(),
 			},
 			{
-				Role:    constants.CommonBotRole,
-				Message: ParseRespContent(fullMessage),
+				Role:      constants.CommonBotRole,
+				Message:   ParseRespContent(fullMessage),
+				CreatedAt: time.Now(),
 			},
 		})
 }
+
+func (svc *ContactSrv) GetUserSessionHistory(ctx context.Context) ([]*types.Session, int, error) {
+	u := ctl.GetUserInfo(ctx)
+	dao := dao.NewContactDao(ctx)
+	sessionList, total, err := dao.Mongo.GetSessionByUserId(ctx, u.Id)
+	if err != nil {
+		return nil, -1, err
+	}
+	return pack.BuildSessionList(sessionList), total, nil
+}
+func (svc *ContactSrv) GetUserSessionDetail(ctx context.Context, req *types.GetUserSessionDetailReq) (*types.SessionDetail, error) {
+	u := ctl.GetUserInfo(ctx)
+	dao := dao.NewContactDao(ctx)
+	exist, data, err := dao.Mongo.IsQuerySessionExist(ctx, req.SessionId)
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
+		return nil, fmt.Errorf("session not exist")
+	}
+	if u.Id != data.UserID {
+		return nil, fmt.Errorf("session not avaliable")
+	}
+	return pack.BuildSessionDetail(data), nil
+}
+
 func ParseRespContent(fullMessage []string) string {
 	var result strings.Builder
 

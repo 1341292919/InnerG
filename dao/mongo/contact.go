@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"log"
 	"time"
 )
 
@@ -33,13 +32,11 @@ func (m *contactMongoDB) IsQuerySessionExist(ctx context.Context, sessionId stri
 	var session model.ChatSession
 	err := m.client.Collection(constants.ChatSessionCollection).FindOne(ctx, filter).Decode(&session)
 	if err != nil {
-		log.Println(err)
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return false, nil, fmt.Errorf("IsQuerySessionExist:Session not exist")
 		}
 		return false, nil, err
 	}
-	log.Print(1)
 	return true, &session, nil
 }
 
@@ -58,4 +55,16 @@ func (m *contactMongoDB) InsertMessageToSession(ctx context.Context, sessionId s
 	}
 	_, err := m.client.Collection(constants.ChatSessionCollection).UpdateOne(ctx, filter, update)
 	return err
+}
+
+func (m *contactMongoDB) GetSessionByUserId(ctx context.Context, userId string) ([]*model.ChatSession, int, error) {
+	filter := bson.M{"userId": userId}
+	var sessionList []*model.ChatSession
+	cursor, err := m.client.Collection(constants.ChatSessionCollection).Find(ctx, filter)
+	defer cursor.Close(ctx)
+	if err != nil {
+		return nil, -1, err
+	}
+	err = cursor.All(ctx, &sessionList)
+	return sessionList, len(sessionList), err
 }
