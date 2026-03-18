@@ -1,7 +1,7 @@
 CREATE TABLE InnerG.user
 (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    account VARCHAR(32) NOT NULL,
+    account VARCHAR(32)  NULL,
     username VARCHAR(64) NOT NULL,
     email VARCHAR(128) NULL,
     avatar VARCHAR(512) NULL,
