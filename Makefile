@@ -3,6 +3,8 @@
 .PHONY: env-up
 env-up:
 	@ docker compose -f ./docker/docker-compose.yml up -d
+	@sudo chown -R 1000:1000 ./docker/data/mongodb
+
 
 # 关闭必要的环境，但不清理 data（位于 docker/data 目录中）
 .PHONY: env-down
