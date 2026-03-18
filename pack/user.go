@@ -12,7 +12,7 @@ func BuildUser(user *model.User) *types.User {
 		Email:     user.Email,
 		Avatar:    user.Avatar,
 		UserName:  user.Username,
-		Account:   user.Account,
+		Account:   user.Account.String,
 		CreatedAt: user.CreatedAt.Unix(),
 		UpdatedAT: user.UpdatedAt.Unix(),
 	}

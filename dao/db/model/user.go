@@ -1,13 +1,14 @@
 package model
 
 import (
+	"database/sql"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 type User struct {
 	gorm.Model
-	Account      string
+	Account      sql.NullString
 	Username     string
 	Email        string
 	Avatar       string

@@ -9,6 +9,7 @@ import (
 	"InnerG/types"
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -35,7 +36,8 @@ func (s *UserSrv) GetEmailCode(ctx context.Context, req *types.UserGetEmailCodeR
 		return err
 	}
 	// 发送验证码
-	return utils.MailSendCode(req.Email, code)
+	log.Println(req.Email, "发送验证码:", code)
+	return nil
 }
 
 func (s *UserSrv) VerifyEmailAndRegister(ctx context.Context, req *types.UserVerifyEmailAndRegisterReq) error {

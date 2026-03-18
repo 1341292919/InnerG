@@ -1,7 +1,7 @@
 CREATE TABLE InnerG.user
 (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    account VARCHAR(32)  NULL,
+    account VARCHAR(32) NULL,
     username VARCHAR(64) NOT NULL,
     email VARCHAR(128) NULL,
     avatar VARCHAR(512) NULL,
@@ -23,7 +23,7 @@ VALUES (
            '15759762783@163.com',
            'https://ts3.tc.mm.bing.net/th/id/OIP-C.MBqJCFa5AMwdgTr5_91G4gHaE7?rs=1&pid=ImgDetMain&o=7&rm=3',
            1,
-           '$2a$12$vA8.XsWrL9fABqpe8bt3Q.ITabaS/efkNBBGRNrrFFkhJb6JzxfC',
+           '$2a$12$sHsUsfhcJPri5.LO0wgovuG4KFozx85tc7CQivRPGCDTz.TUplc7q',
            0,
            '2026-03-18 15:02:46',
            '2026-03-18 23:03:31',
