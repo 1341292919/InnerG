@@ -21,3 +21,7 @@ clean-all: clean
 	@docker-compose -f ./docker/docker-compose.yml ps -q | grep '.' && docker-compose -f ./docker/docker-compose.yml down || echo "$(PREFIX) No services are running."
 	@echo "$(PREFIX) Removing docker data..."
 	rm -rf ./docker/data
+
+.PHONY: build
+build:
+	docker build -t innerg:1.0 -f docker/Dockerfile .

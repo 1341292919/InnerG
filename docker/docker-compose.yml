@@ -5,8 +5,6 @@ services:
     image: redis:bookworm
     volumes:
       - ./data/redis:/data
-    ports:
-      - "6379:6379"
     env_file:
       - "./env/redis.env"
     networks:
@@ -18,8 +16,6 @@ services:
     image: mysql:9.0.1
     env_file:
       - "./env/mysql.env"
-    ports:
-      - "3306:3306"
     networks:
       - InnerG
     volumes:
@@ -29,8 +25,6 @@ services:
   InnerG-mongodb:
       container_name: InnerG-mongodb
       image: mongodb/mongodb-community-server:latest
-      ports:
-        - "27017:27017"  # MongoDB 默认端口
       volumes:
         - ./data/mongodb:/data/db
         - ../config/mongodb:/docker-entrypoint-initdb.d
@@ -39,6 +33,22 @@ services:
       networks:
         - InnerG
       restart: unless-stopped
+  # 你的应用服务 - 仅向外暴露此服务的端口
+  InnerG_server:
+    container_name: InnerG_server
+    image: innerg:1.0
+    ports:
+      - "20000:20000"  # 仅向外暴露应用服务的端口
+    networks:
+      - InnerG
+    volumes:
+      - ../config/:/app/config/
+      - ./logs:/app/logs        # 挂载日志目录
+    depends_on:
+      - InnerG-redis
+      - InnerG-mysql
+      - InnerG-mongodb
+    restart: unless-stopped
 
 networks:
   InnerG:
