@@ -14,3 +14,18 @@ CREATE TABLE InnerG.user
     UNIQUE KEY (account),
     UNIQUE KEY (email)
 ) AUTO_INCREMENT = 108000;
+
+INSERT INTO InnerG.user (id, account, username, email, avatar, gender, password_hash, status, created_at, updated_at, deleted_at)
+VALUES (
+           108000,
+           'lbl102300218',
+           '林柏林爱喝酒',
+           '15759762783@163.com',
+           'https://ts3.tc.mm.bing.net/th/id/OIP-C.MBqJCFa5AMwdgTr5_91G4gHaE7?rs=1&pid=ImgDetMain&o=7&rm=3',
+           1,
+           '$2a$12$vA8.XsWrL9fABqpe8bt3Q.ITabaS/efkNBBGRNrrFFkhJb6JzxfC',
+           0,
+           '2026-03-18 15:02:46',
+           '2026-03-18 23:03:31',
+           NULL
+       );
