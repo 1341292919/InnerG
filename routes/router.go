@@ -21,7 +21,6 @@ func NewRouter() *gin.Engine {
 			authed.POST("user/update/account", api.UserUpdateAccount())
 
 			// 咨询聊天部分
-			authed.GET("contact", api.NewContactHandler())
 			authed.POST("contact/session/start", api.NewChatSession())
 			authed.POST("contact/session/stream", api.StreamChat())
 			authed.GET("contact/session/list", api.GetUserSession())

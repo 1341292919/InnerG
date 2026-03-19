@@ -2,7 +2,6 @@ package types
 
 // gin框架对require参数缺失的拦截，需要添加添加 required字段
 type NewChatSessionReq struct {
-	SessionTitle string `form:"sessionTitle" binding:"required"`
 }
 
 type NewChatSessionResp struct {
@@ -44,18 +43,29 @@ type Session struct {
 }
 
 type SessionDetail struct {
-	UserId    string
-	SessionId string
-	Model     string
-	Title     string
-	Messages  []Message
-	Status    string
-	UpdatedAt int64
-	CreatedAt int64
+	UserId     string
+	SessionId  string
+	Model      string
+	Title      string
+	Messages   []Message
+	MessageNum int
+	Status     string
+	UpdatedAt  int64
+	CreatedAt  int64
 }
 
 type Message struct {
 	Role      string
 	Content   string
 	CreatedAt int64
+}
+
+type StreamResp struct {
+	Code    string
+	Message string
+	Data    StreamRespContent
+}
+
+type StreamRespContent struct {
+	Content string
 }

@@ -7,6 +7,19 @@ import (
 
 func BuildSessionList(session []*model.ChatSession) []*types.Session {
 	buildSession := func(session *model.ChatSession) *types.Session {
+		if len(session.Messages) == 0 {
+			return &types.Session{
+				SessionId:     session.SessionID,
+				Title:         session.Title,
+				UserId:        session.UserID,
+				Model:         session.Model,
+				Status:        session.Status,
+				LastMessage:   "暂无信息噢",
+				LastSpeakRole: "",
+				CreatedAt:     session.CreatedAt.Unix(),
+				UpdatedAt:     session.UpdatedAt.Unix(),
+			}
+		}
 		return &types.Session{
 			SessionId:     session.SessionID,
 			Title:         session.Title,
@@ -28,14 +41,15 @@ func BuildSessionList(session []*model.ChatSession) []*types.Session {
 
 func BuildSessionDetail(session *model.ChatSession) *types.SessionDetail {
 	return &types.SessionDetail{
-		SessionId: session.SessionID,
-		Title:     session.Title,
-		UserId:    session.UserID,
-		Model:     session.Model,
-		Status:    session.Status,
-		Messages:  buildMessageList(session.Messages),
-		CreatedAt: session.CreatedAt.Unix(),
-		UpdatedAt: session.UpdatedAt.Unix(),
+		SessionId:  session.SessionID,
+		Title:      session.Title,
+		UserId:     session.UserID,
+		Model:      session.Model,
+		Status:     session.Status,
+		Messages:   buildMessageList(session.Messages),
+		MessageNum: len(session.Messages),
+		CreatedAt:  session.CreatedAt.Unix(),
+		UpdatedAt:  session.UpdatedAt.Unix(),
 	}
 }
 func buildMessageList(message []model.Message) []types.Message {

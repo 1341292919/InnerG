@@ -48,3 +48,11 @@ func WithToken(ctx *gin.Context, access, refresh string) {
 	ctx.Header(constants.AccessTokenHeader, access)
 	ctx.Header(constants.RefreshTokenHeader, refresh)
 }
+
+func WithTitle(ctx *gin.Context, t string) {
+	ctx.JSON(http.StatusOK, TitleResp{Title: t})
+}
+
+type TitleResp struct {
+	Title string
+}

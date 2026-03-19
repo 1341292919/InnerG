@@ -16,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -36,72 +37,6 @@ func GetContactSrv() *ContactSrv {
 	return ContactSrvIns
 }
 
-// NewContact 需要流式传输，传入初始ctx
-func (svc *ContactSrv) NewContact(ctx *gin.Context) error {
-	flusher, ok := ctx.Writer.(http.Flusher)
-	if !ok {
-		return fmt.Errorf("get http flusher error")
-	}
-	message := make([]utils.Message, 0)
-	message = append(message, utils.Message{
-		Role:    constants.CommonUserRole,
-		Content: constants.CommonOpener,
-	})
-	resp, err := utils.SendMessageToAPI(message)
-	if err != nil {
-		return errno.InternalServiceError.WithMessage(err.Error())
-	}
-	defer resp.Body.Close()
-	reader := bufio.NewReader(resp.Body)
-	fullMessage := make([]string, 0)
-
-loop:
-	for {
-		var line string
-		var e error
-		select {
-		case <-ctx.Request.Context().Done():
-			resp.Body.Close()
-			break loop
-		default:
-			line, e = reader.ReadString('\n')
-			fullMessage = append(fullMessage, line)
-			if e != nil {
-				if e == io.EOF {
-					break loop
-				}
-				return errno.InternalServiceError.WithMessage("streamTrans error pause " + e.Error())
-			}
-			// 直接写入前端（已是SSE格式）
-			fmt.Fprint(ctx.Writer, line)
-			flusher.Flush()
-		}
-	}
-	// 这边需要解析出resp的回复 并将其存进数据库
-	u := ctl.GetUserInfo(ctx.Request.Context())
-	dao := dao.NewContactDao(ctx.Request.Context())
-	err = dao.Mongo.NewChatSession(ctx.Request.Context(), &MongoModel.ChatSession{
-		UserID:    u.Id,
-		SessionID: strconv.FormatInt(rand.Int63(), 10),
-		Model:     config.Api.Model,
-		Title:     "ningning",
-		Status:    constants.CommonHealthStatus,
-		Messages: []MongoModel.Message{
-			{
-				Role:      constants.CommonUserRole,
-				Message:   constants.CommonOpener,
-				CreatedAt: time.Now(),
-			},
-			{
-				Role:      constants.CommonBotRole,
-				Message:   ParseRespContent(fullMessage),
-				CreatedAt: time.Now(),
-			},
-		},
-	})
-	return err
-}
-
 // NewChatSession 新增一个会话
 func (svc *ContactSrv) NewChatSession(ctx context.Context, req *types.NewChatSessionReq) (string, error) {
 	u := ctl.GetUserInfo(ctx)
@@ -111,17 +46,10 @@ func (svc *ContactSrv) NewChatSession(ctx context.Context, req *types.NewChatSes
 		UserID:    u.Id,
 		SessionID: sessionId,
 		Model:     config.Api.Model,
-		Title:     req.SessionTitle,
 		Status:    constants.CommonHealthStatus,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		Messages: []MongoModel.Message{
-			{
-				Role:      constants.CommonSystemRole,
-				Message:   constants.CommonOpener,
-				CreatedAt: time.Now(),
-			},
-		},
+		Messages:  []MongoModel.Message{},
 	})
 	if err != nil {
 		return "", err
@@ -129,6 +57,7 @@ func (svc *ContactSrv) NewChatSession(ctx context.Context, req *types.NewChatSes
 	return sessionId, nil
 }
 
+// StreamChat 聊天
 func (svc *ContactSrv) StreamChat(ctx *gin.Context, req *types.StreamChatReq) error {
 	// 查询会话记录
 	dao := dao.NewContactDao(ctx)
@@ -148,9 +77,11 @@ func (svc *ContactSrv) StreamChat(ctx *gin.Context, req *types.StreamChatReq) er
 		return fmt.Errorf("get http flusher error")
 	}
 	message := make([]utils.Message, 0)
+	message = append(message, utils.Message{Role: constants.CommonSystemRole, Content: constants.CommonOpener})
 	message = append(message, convertMessageList(chatHistory.Messages)...)
 	message = append(message, utils.Message{Role: constants.CommonUserRole, Content: req.UserMessage})
 
+	shouldParseTitle := len(message) == 2
 	resp, err := utils.SendMessageToAPI(message)
 	if err != nil {
 		return errno.InternalServiceError.WithMessage(err.Error())
@@ -158,7 +89,9 @@ func (svc *ContactSrv) StreamChat(ctx *gin.Context, req *types.StreamChatReq) er
 	defer resp.Body.Close()
 	reader := bufio.NewReader(resp.Body)
 	fullMessage := make([]string, 0)
-
+	// 采集title
+	done := false
+	title := ""
 loop:
 	for {
 		var line string
@@ -169,17 +102,75 @@ loop:
 			break loop
 		default:
 			line, e = reader.ReadString('\n')
-			fullMessage = append(fullMessage, line)
 			if e != nil {
 				if e == io.EOF {
 					break loop
 				}
 				return errno.InternalServiceError.WithMessage("streamTrans error pause " + e.Error())
 			}
+			streamResp := ParseStreamLine(line)
+			if streamResp == nil {
+				continue
+			}
+			if shouldParseTitle &&
+				streamResp.Data.Content == constants.TileMarker {
+				done = true
+				fmt.Fprint(ctx.Writer, ConvertSSE(&types.StreamResp{
+					Code:    "10000",
+					Message: "completed",
+				}))
+				flusher.Flush()
+			}
+			if shouldParseTitle &&
+				strings.Contains(streamResp.Data.Content, constants.TileMarker) {
+				/*
+					两种情况
+					titleMarker前有内容 需流式写入
+					titleMarker后有内容 需处理出来作为标题部分
+					titleMarker前后都有内容
+				*/
+				markerIdx := strings.Index(streamResp.Data.Content, constants.TileMarker)
+				beforeMarker := streamResp.Data.Content[:markerIdx]
+				afterMarker := streamResp.Data.Content[markerIdx+len(constants.TileMarker):]
+
+				// 标记前有内容，需要转发给前端
+				if beforeMarker != "" {
+					streamResp.Data.Content = beforeMarker
+					fmt.Fprint(ctx.Writer, ConvertSSE(streamResp))
+					fmt.Fprint(ctx.Writer, ConvertSSE(&types.StreamResp{
+						Code:    "10000",
+						Message: "completed",
+					}))
+					flusher.Flush()
+					fullMessage = append(fullMessage, beforeMarker)
+				}
+				// 标记后有内容，需要处理出来作为标题部分
+				if afterMarker != "" {
+					title += afterMarker
+				}
+				// 标记已出现，后续内容都作为标题
+				done = true
+				continue
+			}
+			if done {
+				title += streamResp.Data.Content
+				continue
+			}
+			fullMessage = append(fullMessage, streamResp.Data.Content)
 			// 直接写入前端（已是SSE格式）
-			fmt.Fprint(ctx.Writer, line)
+			fmt.Fprint(ctx.Writer, ConvertSSE(streamResp))
 			flusher.Flush()
 		}
+	}
+
+	if shouldParseTitle {
+		pack.WithTitle(ctx, title)
+		go func() {
+			err = dao.Mongo.UpdateSessionTitle(context.Background(), chatHistory.SessionID, title)
+			if err != nil {
+				log.Println("update session title error: " + err.Error())
+			}
+		}()
 	}
 
 	return dao.Mongo.InsertMessageToSession(ctx.Request.Context(), chatHistory.SessionID,
@@ -191,7 +182,7 @@ loop:
 			},
 			{
 				Role:      constants.CommonBotRole,
-				Message:   ParseRespContent(fullMessage),
+				Message:   strings.Join(fullMessage, ""),
 				CreatedAt: time.Now(),
 			},
 		})
@@ -222,41 +213,56 @@ func (svc *ContactSrv) GetUserSessionDetail(ctx context.Context, req *types.GetU
 	return pack.BuildSessionDetail(data), nil
 }
 
-func ParseRespContent(fullMessage []string) string {
-	var result strings.Builder
+// ParseStreamLine 解析SSE行数据，返回统一的StreamResp结构
+func ParseStreamLine(line string) *types.StreamResp {
+	// 1. 去掉 "data: " 前缀
+	line = strings.TrimSpace(line)
+	if !strings.HasPrefix(line, "data: ") {
+		return nil
+	}
 
-	for _, line := range fullMessage {
-		// 跳过空行和 [DONE] 标记
-		if line == "" || line == "data: [DONE]" {
-			continue
-		}
+	jsonStr := strings.TrimPrefix(line, "data: ")
 
-		// 移除 "data: " 前缀
-		if strings.HasPrefix(line, "data: ") {
-			line = strings.TrimPrefix(line, "data: ")
-		}
-
-		// 解析 JSON
-		var chunk struct {
-			Choices []struct {
-				Delta struct {
-					Content string `json:"content"`
-				} `json:"delta"`
-			} `json:"choices"`
-		}
-
-		if err := json.Unmarshal([]byte(line), &chunk); err != nil {
-			// 如果解析失败，跳过这一条
-			continue
-		}
-
-		// 提取 content 内容
-		if len(chunk.Choices) > 0 {
-			result.WriteString(chunk.Choices[0].Delta.Content)
+	// 2. 如果是心跳或特殊事件，直接返回空
+	if jsonStr == "[DONE]" {
+		return &types.StreamResp{
+			Code:    "10000",
+			Message: "completed",
 		}
 	}
 
-	return result.String()
+	// 3. 解析API返回的JSON
+	var apiResp struct {
+		Choices []struct {
+			Delta struct {
+				Content string `json:"content"`
+			} `json:"delta"`
+		} `json:"choices"`
+	}
+
+	if err := json.Unmarshal([]byte(jsonStr), &apiResp); err != nil {
+		return nil
+	}
+
+	// 4. 提取content
+	content := ""
+	if len(apiResp.Choices) > 0 {
+		content = apiResp.Choices[0].Delta.Content
+	}
+
+	// 5. 返回统一的StreamResp
+	return &types.StreamResp{
+		Code:    "10000",
+		Message: "success",
+		Data: types.StreamRespContent{
+			Content: content,
+		},
+	}
+}
+
+func ConvertSSE(streamResp *types.StreamResp) string {
+	jsonData, _ := json.Marshal(streamResp)
+	return fmt.Sprintf("data:%s\n\n", jsonData)
 }
 
 func convertMessageList(mes []MongoModel.Message) []utils.Message {

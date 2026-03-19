@@ -8,22 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewContactHandler() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		ctx.Header("Content-Type", "text/event-stream")
-		ctx.Header("Cache-Control", "no-cache")
-		ctx.Header("Connection", "keep-alive")
-
-		l := service.GetContactSrv()
-		err := l.NewContact(ctx)
-		if err != nil {
-			pack.RespError(ctx, err)
-			return
-		}
-		pack.RespSuccess(ctx)
-	}
-}
-
 func NewChatSession() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req types.NewChatSessionReq

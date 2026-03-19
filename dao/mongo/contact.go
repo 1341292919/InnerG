@@ -68,3 +68,15 @@ func (m *contactMongoDB) GetSessionByUserId(ctx context.Context, userId string) 
 	err = cursor.All(ctx, &sessionList)
 	return sessionList, len(sessionList), err
 }
+
+func (m *contactMongoDB) UpdateSessionTitle(ctx context.Context, sessionId string, title string) error {
+	filter := bson.M{"sessionId": sessionId}
+	update := bson.M{
+		"$set": bson.M{
+			"title":     title,
+			"updatedAt": time.Now(),
+		},
+	}
+	_, err := m.client.Collection(constants.ChatSessionCollection).UpdateOne(ctx, filter, update)
+	return err
+}
