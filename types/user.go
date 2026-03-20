@@ -33,6 +33,8 @@ type User struct {
 	UserName  string
 	Account   string
 	Avatar    string
+	Gender    int
+	RoleType  int
 	CreatedAt int64
 	UpdatedAT int64
 }

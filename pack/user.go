@@ -13,6 +13,8 @@ func BuildUser(user *model.User) *types.User {
 		Avatar:    user.Avatar,
 		UserName:  user.Username,
 		Account:   user.Account.String,
+		RoleType:  int(user.RoleType),
+		Gender:    int(user.Gender),
 		CreatedAt: user.CreatedAt.Unix(),
 		UpdatedAT: user.UpdatedAt.Unix(),
 	}

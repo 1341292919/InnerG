@@ -13,6 +13,8 @@ type User struct {
 	Email        string
 	Avatar       string
 	Status       int8
+	RoleType     int8
+	Gender       int8
 	PasswordHash string
 }
 
