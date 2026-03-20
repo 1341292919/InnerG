@@ -8,7 +8,8 @@ import (
 var Key = constants.ContextIdKey
 
 type UserInfo struct {
-	Id string
+	Id    string
+	Token string
 }
 
 func GetUserInfo(ctx context.Context) *UserInfo {

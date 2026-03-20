@@ -15,4 +15,5 @@ type UserCache interface {
 	IsKeyExist(ctx context.Context, key string) bool
 	SetEmailCode(ctx context.Context, key string, code string) error
 	GetEmailCode(ctx context.Context, key string) (string, error)
+	BlockToken(ctx context.Context, token string) error
 }

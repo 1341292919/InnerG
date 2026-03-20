@@ -47,7 +47,7 @@ func UserVerifyEmailAndRegister() gin.HandlerFunc {
 	}
 }
 
-func UserLoginRegister() gin.HandlerFunc {
+func UserLogin() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req types.UserLoginReq
 		if err := ctx.ShouldBind(&req); err != nil {
@@ -102,6 +102,18 @@ func UserUpdateAccount() gin.HandlerFunc {
 		}
 		l := service.GetUserSrv()
 		err := l.UpdateUserAccount(ctx.Request.Context(), req.Account)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.RespSuccess(ctx)
+	}
+}
+
+func UserLogOut() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		l := service.GetUserSrv()
+		err := l.LogOut(ctx.Request.Context())
 		if err != nil {
 			pack.RespError(ctx, err)
 			return

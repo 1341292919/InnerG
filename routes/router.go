@@ -12,13 +12,14 @@ func NewRouter() *gin.Engine {
 	{
 		v1.POST("user/email/code", api.UserGetEmailCodeHandler())
 		v1.POST("user/register", api.UserVerifyEmailAndRegister())
-		v1.POST("user/login", api.UserLoginRegister())
+		v1.POST("user/login", api.UserLogin())
 		v1.POST("user/email/login", api.UserVerifyEmailAndLogin())
 		authed := v1.Group("/") // 需要登陆保护
 		authed.Use(jwt.Auth())
 		{
 			// 用户部分
 			authed.POST("user/update/account", api.UserUpdateAccount())
+			authed.POST("user/logout", api.UserLogOut())
 
 			// 咨询聊天部分
 			authed.POST("contact/session/start", api.NewChatSession())

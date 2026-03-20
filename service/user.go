@@ -138,6 +138,12 @@ func (s *UserSrv) UpdateUserAccount(ctx context.Context, account string) error {
 	}
 	return userDao.Db.UpdateUserAccount(ctx, account, u.Id)
 }
+func (s *UserSrv) LogOut(ctx context.Context) error {
+	u := ctl.GetUserInfo(ctx)
+	userDao := dao.NewUserDao(ctx)
+	key := fmt.Sprintf("token:%s", u.Token)
+	return userDao.Cache.BlockToken(ctx, key)
+}
 func IsEmail(str string) bool {
 	return strings.Contains(str, "@")
 }

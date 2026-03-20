@@ -34,3 +34,11 @@ func (ca *userCache) GetEmailCode(ctx context.Context, key string) (string, erro
 	}
 	return code, nil
 }
+
+func (ca *userCache) BlockToken(ctx context.Context, key string) error {
+	// 仅把token作为key即可
+	if err := _Ca.Set(ctx, key, "", constants.AccessTokenTTL).Err(); err != nil {
+		return fmt.Errorf("SetEmailCode: Set cache failed: %w", err)
+	}
+	return nil
+}
