@@ -18,6 +18,7 @@ func NewRouter() *gin.Engine {
 		authed.Use(jwt.Auth())
 		{
 			// 用户部分
+			authed.GET("user/info", api.GetUserInfo())
 			authed.POST("user/update/account", api.UserUpdateAccount())
 			authed.POST("user/logout", api.UserLogOut())
 			authed.POST("user/avatar", api.UserUploadAvatar())

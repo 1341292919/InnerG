@@ -127,6 +127,19 @@ func (s *UserSrv) VerifyEmailAndLogin(ctx context.Context, req *types.UserVerify
 	return u, nil
 }
 
+func (s *UserSrv) GetUserInfo(ctx context.Context) (*model.User, error) {
+	u := ctl.GetUserInfo(ctx)
+	userDao := dao.NewUserDao(ctx)
+	user, exist, err := userDao.Db.IsUserExistById(ctx, u.Id)
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
+		return nil, fmt.Errorf("user not exist")
+	}
+	return user, nil
+}
+
 func (s *UserSrv) UpdateUserAccount(ctx context.Context, account string) error {
 	u := ctl.GetUserInfo(ctx)
 	userDao := dao.NewUserDao(ctx)

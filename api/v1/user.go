@@ -93,6 +93,18 @@ func UserVerifyEmailAndLogin() gin.HandlerFunc {
 	}
 }
 
+func GetUserInfo() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		l := service.GetUserSrv()
+		u, err := l.GetUserInfo(ctx.Request.Context())
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.RespData(ctx, pack.BuildUser(u))
+	}
+}
+
 func UserUpdateAccount() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req types.UpdateUserAccountReq

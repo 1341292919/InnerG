@@ -22,6 +22,18 @@ func (db *userDB) CreateNewUser(ctx context.Context, user *model.User) error {
 	return db.client.WithContext(ctx).Table(constants.UserTableName).Create(user).Error
 }
 
+func (db *userDB) IsUserExistById(ctx context.Context, id string) (*model.User, bool, error) {
+	var user *model.User
+	err := db.client.WithContext(ctx).Table(constants.UserTableName).Where("id = ?", id).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+	return user, true, nil
+}
+
 func (db *userDB) IsUserExistByEmail(ctx context.Context, email string) (*model.User, bool, error) {
 	var user *model.User
 	err := db.client.WithContext(ctx).Table(constants.UserTableName).Where("email = ?", email).First(&user).Error
