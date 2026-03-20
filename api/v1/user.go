@@ -121,3 +121,20 @@ func UserLogOut() gin.HandlerFunc {
 		pack.RespSuccess(ctx)
 	}
 }
+
+func UserUploadAvatar() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		_, fileHeader, err := ctx.Request.FormFile("file")
+		if err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
+			return
+		}
+		l := service.GetUserSrv()
+		url, err := l.UpdateUserAvatar(ctx.Request.Context(), fileHeader)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.RespData(ctx, types.UpdateUserAvatarResp{AvatarUrl: url})
+	}
+}

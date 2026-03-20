@@ -10,6 +10,7 @@ type UserDB interface {
 	IsUserExistByEmail(ctx context.Context, email string) (*model.User, bool, error)
 	IsUserExistByAccount(ctx context.Context, account string) (*model.User, bool, error)
 	UpdateUserAccount(ctx context.Context, account string, id string) error
+	UpdateUserAvatar(ctx context.Context, id, avatarUrl string) error
 }
 type UserCache interface {
 	IsKeyExist(ctx context.Context, key string) bool

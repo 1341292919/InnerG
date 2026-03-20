@@ -5,14 +5,18 @@ import (
 	"InnerG/dao/db/model"
 	"InnerG/pkg/constants"
 	"InnerG/pkg/ctl"
+	"InnerG/pkg/oss"
 	"InnerG/pkg/utils"
 	"InnerG/types"
 	"context"
 	"fmt"
 	"log"
+	"mime/multipart"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 var UserSrvIns *UserSrv
@@ -143,6 +147,23 @@ func (s *UserSrv) LogOut(ctx context.Context) error {
 	userDao := dao.NewUserDao(ctx)
 	key := fmt.Sprintf("token:%s", u.Token)
 	return userDao.Cache.BlockToken(ctx, key)
+}
+func (s *UserSrv) UpdateUserAvatar(ctx context.Context, file *multipart.FileHeader) (string, error) {
+	u := ctl.GetUserInfo(ctx)
+	userDao := dao.NewUserDao(ctx)
+	err := oss.IsImage(file)
+	if err != nil {
+		return "", fmt.Errorf("check image failed: %w", err)
+	}
+	// 识别图片信息
+	fileName := fmt.Sprintf("%v_%v", u.Id, time.Now().Unix())
+	err = oss.SaveFile(file, constants.StorePath, fileName)
+	if err != nil {
+		return "", fmt.Errorf("save file failed: %w", err)
+	}
+	filePath := filepath.Join(constants.StorePath, fileName)
+	url, err := oss.Upload(filePath, fileName, u.Id, constants.OssOrigin)
+	return url, userDao.Db.UpdateUserAvatar(ctx, u.Id, url)
 }
 func IsEmail(str string) bool {
 	return strings.Contains(str, "@")

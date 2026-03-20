@@ -22,6 +22,11 @@ type UserVerifyEmailAndLoginReq struct {
 type UpdateUserAccountReq struct {
 	Account string `form:"account" binding:"required"`
 }
+type UpdateUserAvatarReq struct {
+}
+type UpdateUserAvatarResp struct {
+	AvatarUrl string
+}
 type User struct {
 	Id        string
 	Email     string

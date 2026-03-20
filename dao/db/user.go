@@ -49,3 +49,7 @@ func (db *userDB) IsUserExistByAccount(ctx context.Context, account string) (*mo
 func (db *userDB) UpdateUserAccount(ctx context.Context, account string, id string) error {
 	return db.client.WithContext(ctx).Table(constants.UserTableName).Where("id = ?", id).Update("account", account).Error
 }
+
+func (db *userDB) UpdateUserAvatar(ctx context.Context, id, avatarUrl string) error {
+	return db.client.WithContext(ctx).Table(constants.UserTableName).Where("id = ?", id).Update("avatar", avatarUrl).Error
+}
