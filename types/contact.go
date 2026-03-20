@@ -42,6 +42,7 @@ type Session struct {
 	Title         string
 	UpdatedAt     int64
 	CreatedAt     int64
+	MessageNum    int
 	LastMessage   string
 	LastSpeakRole string
 	Status        string

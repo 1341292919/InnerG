@@ -53,7 +53,7 @@ func GetUserSession() gin.HandlerFunc {
 			return
 		}
 		l := service.GetContactSrv()
-		list, total, err := l.GetUserSessionHistory(ctx.Request.Context())
+		list, total, err := l.GetUserSessionHistory(ctx.Request.Context(), &req)
 		if err != nil {
 			pack.RespError(ctx, err)
 			return

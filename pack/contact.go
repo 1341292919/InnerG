@@ -16,6 +16,7 @@ func BuildSessionList(session []*model.ChatSession) []*types.Session {
 				Status:        session.Status,
 				LastMessage:   "暂无信息噢",
 				LastSpeakRole: "",
+				MessageNum:    0,
 				CreatedAt:     session.CreatedAt.Unix(),
 				UpdatedAt:     session.UpdatedAt.Unix(),
 			}
@@ -27,6 +28,7 @@ func BuildSessionList(session []*model.ChatSession) []*types.Session {
 			Model:         session.Model,
 			Status:        session.Status,
 			LastMessage:   session.Messages[len(session.Messages)-1].Message,
+			MessageNum:    len(session.Messages),
 			LastSpeakRole: session.Messages[len(session.Messages)-1].Role,
 			CreatedAt:     session.CreatedAt.Unix(),
 			UpdatedAt:     session.UpdatedAt.Unix(),

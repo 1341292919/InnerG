@@ -12,4 +12,5 @@ type ContactMongoDB interface {
 	GetSessionByUserId(ctx context.Context, userId string) ([]*model.ChatSession, int, error)
 	UpdateSessionTitle(ctx context.Context, sessionId string, title string) error
 	DeleteSession(ctx context.Context, sessionId string) error
+	GetSessionByUserIdWithPagination(ctx context.Context, userId string, pageNum, pageSize int) ([]*model.ChatSession, int, error)
 }

@@ -188,10 +188,10 @@ loop:
 		})
 }
 
-func (svc *ContactSrv) GetUserSessionHistory(ctx context.Context) ([]*types.Session, int, error) {
+func (svc *ContactSrv) GetUserSessionHistory(ctx context.Context, req *types.GetUserSessionListReq) ([]*types.Session, int, error) {
 	u := ctl.GetUserInfo(ctx)
 	dao := dao.NewContactDao(ctx)
-	sessionList, total, err := dao.Mongo.GetSessionByUserId(ctx, u.Id)
+	sessionList, total, err := dao.Mongo.GetSessionByUserIdWithPagination(ctx, u.Id, req.PageNum, req.PageSize)
 	if err != nil {
 		return nil, -1, err
 	}

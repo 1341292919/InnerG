@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"time"
 )
 
@@ -101,4 +102,44 @@ func (m *contactMongoDB) DeleteSession(ctx context.Context, sessionId string) er
 	}
 	_, err := m.client.Collection(constants.ChatSessionCollection).UpdateOne(ctx, filter, update)
 	return err
+}
+
+func (m *contactMongoDB) GetSessionByUserIdWithPagination(ctx context.Context, userId string, pageNum, pageSize int) ([]*model.ChatSession, int, error) {
+	filter := bson.M{
+		"userId": userId,
+		"status": bson.M{
+			"$nin": []interface{}{"0", 0},
+		},
+	}
+
+	// 获取总数
+	total, err := m.client.Collection(constants.ChatSessionCollection).CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	// 计算跳过数量
+	skip := int64((pageNum - 1) * pageSize)
+	limit := int64(pageSize)
+
+	var sessionList []*model.ChatSession
+
+	// v2 版本使用 options.Find()
+	opts := options.Find()
+	opts.SetSort(bson.D{{Key: "updatedAt", Value: -1}})
+	opts.SetSkip(skip)
+	opts.SetLimit(limit)
+
+	cursor, err := m.client.Collection(constants.ChatSessionCollection).Find(ctx, filter, opts)
+	if err != nil {
+		return nil, -1, err
+	}
+	defer cursor.Close(ctx)
+
+	err = cursor.All(ctx, &sessionList)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	return sessionList, int(total), nil
 }
