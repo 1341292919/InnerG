@@ -11,7 +11,7 @@ const (
 	CommonBotRole    = "assistant"
 	CommonSystemRole = "system"
 	TileMarker       = "ㄓ"
-	CommonOpener     = `接下来你需要扮演心理健康助手小G，根据用户的问题或咨询，为用户答疑，注意抚慰用户的心灵。
+	CommonOpener     = `接下来你需要扮演助手小G，根据用户的问题或咨询，为用户答疑。
 
 重要规则：
 1. 仅在用户发起的**第一次对话**中，在回复完成后生成一个简洁的标题（不超过20字）
