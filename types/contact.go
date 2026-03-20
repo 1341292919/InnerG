@@ -29,6 +29,11 @@ type GetUserSessionDetailReq struct {
 type GetUserSessionDetailResp struct {
 	SessionDetail *SessionDetail
 }
+type DeleteUserSessionReq struct {
+	SessionId string `form:"sessionId" binding:"required"`
+}
+type DeleteUserSessionResp struct {
+}
 
 type Session struct {
 	UserId        string

@@ -213,6 +213,21 @@ func (svc *ContactSrv) GetUserSessionDetail(ctx context.Context, req *types.GetU
 	return pack.BuildSessionDetail(data), nil
 }
 
+func (svc *ContactSrv) DeleteUserSession(ctx context.Context, sessionId string) error {
+	contactDao := dao.NewContactDao(ctx)
+	exist, data, err := contactDao.Mongo.IsQuerySessionExist(ctx, sessionId)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return fmt.Errorf("session not exist")
+	}
+	u := ctl.GetUserInfo(ctx)
+	if u.Id != data.UserID {
+	}
+	return contactDao.Mongo.DeleteSession(ctx, sessionId)
+}
+
 // ParseStreamLine 解析SSE行数据，返回统一的StreamResp结构
 func ParseStreamLine(line string) *types.StreamResp {
 	// 1. 去掉 "data: " 前缀

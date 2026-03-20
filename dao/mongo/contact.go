@@ -28,7 +28,12 @@ func (m *contactMongoDB) NewChatSession(ctx context.Context, session *model.Chat
 }
 
 func (m *contactMongoDB) IsQuerySessionExist(ctx context.Context, sessionId string) (bool, *model.ChatSession, error) {
-	filter := bson.M{"sessionId": sessionId}
+	filter := bson.M{
+		"sessionId": sessionId,
+		"status": bson.M{
+			"$nin": []interface{}{"0", 0},
+		},
+	}
 	var session model.ChatSession
 	err := m.client.Collection(constants.ChatSessionCollection).FindOne(ctx, filter).Decode(&session)
 	if err != nil {
@@ -58,7 +63,12 @@ func (m *contactMongoDB) InsertMessageToSession(ctx context.Context, sessionId s
 }
 
 func (m *contactMongoDB) GetSessionByUserId(ctx context.Context, userId string) ([]*model.ChatSession, int, error) {
-	filter := bson.M{"userId": userId}
+	filter := bson.M{
+		"userId": userId,
+		"status": bson.M{
+			"$nin": []interface{}{"0", 0},
+		},
+	}
 	var sessionList []*model.ChatSession
 	cursor, err := m.client.Collection(constants.ChatSessionCollection).Find(ctx, filter)
 	defer cursor.Close(ctx)
@@ -74,6 +84,18 @@ func (m *contactMongoDB) UpdateSessionTitle(ctx context.Context, sessionId strin
 	update := bson.M{
 		"$set": bson.M{
 			"title":     title,
+			"updatedAt": time.Now(),
+		},
+	}
+	_, err := m.client.Collection(constants.ChatSessionCollection).UpdateOne(ctx, filter, update)
+	return err
+}
+
+func (m *contactMongoDB) DeleteSession(ctx context.Context, sessionId string) error {
+	filter := bson.M{"sessionId": sessionId}
+	update := bson.M{
+		"$set": bson.M{
+			"status":    constants.CommonDeletedStatus,
 			"updatedAt": time.Now(),
 		},
 	}

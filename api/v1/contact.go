@@ -83,3 +83,20 @@ func GetUserSessionDetail() gin.HandlerFunc {
 		pack.RespData(ctx, resp)
 	}
 }
+
+func DeleteUserSession() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var req types.DeleteUserSessionReq
+		if err := ctx.ShouldBind(&req); err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
+			return
+		}
+		l := service.GetContactSrv()
+		err := l.DeleteUserSession(ctx.Request.Context(), req.SessionId)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.RespSuccess(ctx)
+	}
+}

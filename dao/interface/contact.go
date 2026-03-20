@@ -11,4 +11,5 @@ type ContactMongoDB interface {
 	InsertMessageToSession(ctx context.Context, sessionId string, message []model.Message) error
 	GetSessionByUserId(ctx context.Context, userId string) ([]*model.ChatSession, int, error)
 	UpdateSessionTitle(ctx context.Context, sessionId string, title string) error
+	DeleteSession(ctx context.Context, sessionId string) error
 }

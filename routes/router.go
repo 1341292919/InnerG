@@ -26,6 +26,7 @@ func NewRouter() *gin.Engine {
 			authed.POST("contact/session/stream", api.StreamChat())
 			authed.GET("contact/session/list", api.GetUserSession())
 			authed.GET("contact/session/detail", api.GetUserSessionDetail())
+			authed.POST("contact/session/delete", api.DeleteUserSession())
 		}
 	}
 	return r
