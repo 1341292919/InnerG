@@ -66,3 +66,7 @@ func InitMySQL() {
 func NewDBClient() _interface.UserDB {
 	return NewUserDB(_db)
 }
+
+func NewMusicDBClient() _interface.MusicDB {
+	return NewMusicDB(_db)
+}

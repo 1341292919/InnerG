@@ -29,6 +29,12 @@ func NewRouter() *gin.Engine {
 			authed.GET("contact/session/list", api.GetUserSession())
 			authed.GET("contact/session/detail", api.GetUserSessionDetail())
 			authed.POST("contact/session/delete", api.DeleteUserSession())
+
+			// 音乐服务部分
+			authed.GET("music/playlist/list", api.GetPlaylistList())
+			authed.GET("music/playlist/detail", api.GetPlaylistDetail())
+			authed.GET("music/song/list", api.GetSongDetailList())
+			authed.GET("music/song/detail", api.GetSongDetail())
 		}
 	}
 	return r
