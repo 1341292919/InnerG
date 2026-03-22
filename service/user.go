@@ -41,7 +41,7 @@ func (s *UserSrv) GetEmailCode(ctx context.Context, req *types.UserGetEmailCodeR
 	}
 	// 发送验证码
 	log.Println(req.Email, "发送验证码:", code)
-	return nil
+	return utils.MailSendCode(req.Email, code)
 }
 
 func (s *UserSrv) VerifyEmailAndRegister(ctx context.Context, req *types.UserVerifyEmailAndRegisterReq) error {
