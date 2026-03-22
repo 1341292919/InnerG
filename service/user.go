@@ -155,6 +155,45 @@ func (s *UserSrv) UpdateUserAccount(ctx context.Context, account string) error {
 	}
 	return userDao.Db.UpdateUserAccount(ctx, account, u.Id)
 }
+
+func (s *UserSrv) UpdateUserName(ctx context.Context, userName string) error {
+	u := ctl.GetUserInfo(ctx)
+	userDao := dao.NewUserDao(ctx)
+	user, exist, err := userDao.Db.IsUserExistById(ctx, u.Id)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return fmt.Errorf("用户不存在")
+	}
+
+	userName = strings.TrimSpace(userName)
+	if userName == "" {
+		return fmt.Errorf("用户名不能为空")
+	}
+	if user.Username == userName {
+		return fmt.Errorf("新用户名与原用户名相同，无需修改")
+	}
+	return userDao.Db.UpdateUserName(ctx, userName, u.Id)
+}
+
+func (s *UserSrv) UpdateUserGender(ctx context.Context, gender string) error {
+	u := ctl.GetUserInfo(ctx)
+	userDao := dao.NewUserDao(ctx)
+	_, exist, err := userDao.Db.IsUserExistById(ctx, u.Id)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return fmt.Errorf("用户不存在")
+	}
+
+	if gender != "0" && gender != "1" {
+		return fmt.Errorf("gender 参数错误，仅支持 0 或 1")
+	}
+	return userDao.Db.UpdateUserGender(ctx, gender, u.Id)
+}
+
 func (s *UserSrv) LogOut(ctx context.Context) error {
 	u := ctl.GetUserInfo(ctx)
 	userDao := dao.NewUserDao(ctx)

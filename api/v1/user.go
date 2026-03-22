@@ -122,6 +122,40 @@ func UserUpdateAccount() gin.HandlerFunc {
 	}
 }
 
+func UserUpdateUserName() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var req types.UpdateUserNameReq
+		if err := ctx.ShouldBind(&req); err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
+			return
+		}
+		l := service.GetUserSrv()
+		err := l.UpdateUserName(ctx.Request.Context(), req.UserName)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.RespSuccess(ctx)
+	}
+}
+
+func UserUpdateGender() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var req types.UpdateUserGenderReq
+		if err := ctx.ShouldBind(&req); err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
+			return
+		}
+		l := service.GetUserSrv()
+		err := l.UpdateUserGender(ctx.Request.Context(), req.Gender)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.RespSuccess(ctx)
+	}
+}
+
 func UserLogOut() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		l := service.GetUserSrv()

@@ -20,6 +20,8 @@ func NewRouter() *gin.Engine {
 			// 用户部分
 			authed.GET("user/info", api.GetUserInfo())
 			authed.POST("user/update/account", api.UserUpdateAccount())
+			authed.POST("user/update/username", api.UserUpdateUserName())
+			authed.POST("user/update/gender", api.UserUpdateGender())
 			authed.POST("user/logout", api.UserLogOut())
 			authed.POST("user/avatar", api.UserUploadAvatar())
 

@@ -62,6 +62,14 @@ func (db *userDB) UpdateUserAccount(ctx context.Context, account string, id stri
 	return db.client.WithContext(ctx).Table(constants.UserTableName).Where("id = ?", id).Update("account", account).Error
 }
 
+func (db *userDB) UpdateUserName(ctx context.Context, userName string, id string) error {
+	return db.client.WithContext(ctx).Table(constants.UserTableName).Where("id = ?", id).Update("username", userName).Error
+}
+
+func (db *userDB) UpdateUserGender(ctx context.Context, gender string, id string) error {
+	return db.client.WithContext(ctx).Table(constants.UserTableName).Where("id = ?", id).Update("gender", gender).Error
+}
+
 func (db *userDB) UpdateUserAvatar(ctx context.Context, id, avatarUrl string) error {
 	return db.client.WithContext(ctx).Table(constants.UserTableName).Where("id = ?", id).Update("avatar", avatarUrl).Error
 }
