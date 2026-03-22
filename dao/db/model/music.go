@@ -32,8 +32,9 @@ type Playlist struct {
 }
 
 type PlaylistSong struct {
-	ID         uint64    `gorm:"column:id"`
-	Name       string    `gorm:"column:name"`
-	SingerName string    `gorm:"column:singer_name"`
+	ID         uint64 `gorm:"column:id"`
+	Name       string `gorm:"column:name"`
+	SingerName string `gorm:"column:singer_name"`
+	Album      sql.NullString
 	CreatedAt  time.Time `gorm:"column:created_at"`
 }

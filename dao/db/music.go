@@ -61,7 +61,7 @@ func (db *musicDB) GetPlaylistSongListByPlaylistId(ctx context.Context, playlist
 	res := make([]*model.PlaylistSong, 0)
 	err := db.client.WithContext(ctx).
 		Table(constants.PlaylistSongTableName+" ps").
-		Select("s.id, s.name, s.singer_name, s.created_at").
+		Select("s.id, s.name, s.singer_name, s.album, s.created_at").
 		Joins("JOIN "+constants.SongTableName+" s ON s.id = ps.song_id").
 		Where("ps.playlist_id = ?", playlistId).
 		Where("ps.deleted_at IS NULL").

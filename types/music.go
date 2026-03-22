@@ -67,6 +67,7 @@ type Song struct {
 	Id         string
 	Name       string
 	SingerName string
+	Album      string
 	CreatedAt  int64
 }
 

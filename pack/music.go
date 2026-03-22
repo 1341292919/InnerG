@@ -49,6 +49,7 @@ func BuildPlaylistSongList(list []*model.PlaylistSong) []*types.Song {
 			Id:         strconv.FormatUint(item.ID, 10),
 			Name:       item.Name,
 			SingerName: item.SingerName,
+			Album:      convertNullString(item.Album),
 			CreatedAt:  item.CreatedAt.Unix(),
 		})
 	}
