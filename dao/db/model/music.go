@@ -12,7 +12,8 @@ type Song struct {
 	Description sql.NullString
 	CoverURL    sql.NullString `gorm:"column:cover_url"`
 	Status      int8
-	SingerID    uint64 `gorm:"column:singer_id"`
+	SingerName  string `gorm:"column:singer_name"`
+	Album       sql.NullString
 	SourceURL   string `gorm:"column:source_url"`
 	Duration    int
 	PlayCount   int64 `gorm:"column:play_count"`

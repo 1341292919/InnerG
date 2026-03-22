@@ -61,9 +61,8 @@ func (db *musicDB) GetPlaylistSongListByPlaylistId(ctx context.Context, playlist
 	res := make([]*model.PlaylistSong, 0)
 	err := db.client.WithContext(ctx).
 		Table(constants.PlaylistSongTableName+" ps").
-		Select("s.id, s.name, sg.name as singer_name, s.created_at").
+		Select("s.id, s.name, s.singer_name, s.created_at").
 		Joins("JOIN "+constants.SongTableName+" s ON s.id = ps.song_id").
-		Joins("LEFT JOIN "+constants.SingerTableName+" sg ON sg.id = s.singer_id").
 		Where("ps.playlist_id = ?", playlistId).
 		Where("ps.deleted_at IS NULL").
 		Where("s.deleted_at IS NULL").
@@ -88,9 +87,8 @@ func (db *musicDB) GetSongList(ctx context.Context, pageNum, pageSize int) ([]*m
 	err = db.client.WithContext(ctx).
 		Table(constants.SongTableName).
 		Where("status <> ?", 2).
-		Order("updated_at DESC").
+		Order("RAND()").
 		Limit(pageSize).
-		Offset((pageNum - 1) * pageSize).
 		Find(&list).Error
 	if err != nil {
 		return nil, -1, err

@@ -76,7 +76,8 @@ type SongDetail struct {
 	Description string
 	CoverUrl    string
 	Status      int
-	SingerId    string
+	SingerName  string
+	Album       string
 	SourceUrl   string
 	Duration    int
 	PlayCount   int64

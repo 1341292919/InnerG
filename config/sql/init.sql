@@ -55,7 +55,8 @@ CREATE TABLE InnerG.songs
     description TEXT NULL COMMENT '歌曲描述',
     cover_url VARCHAR(512) NULL COMMENT '封面图片URL',
     status TINYINT DEFAULT 1 NOT NULL COMMENT '状态：0-下架，1-上架，2-审核中',
-    singer_id BIGINT UNSIGNED NOT NULL COMMENT '歌手ID，关联user表',
+    singer_name VARCHAR(128) NOT NULL COMMENT '歌手名称',
+    album VARCHAR(256) NULL COMMENT '专辑名称',
     source_url VARCHAR(512) NOT NULL COMMENT '歌曲文件URL',
     duration INT DEFAULT 0 NOT NULL COMMENT '歌曲时长（秒）',
     play_count BIGINT DEFAULT 0 NOT NULL COMMENT '播放次数',
@@ -63,7 +64,7 @@ CREATE TABLE InnerG.songs
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME NULL,
-    INDEX idx_singer_id (singer_id),
+    INDEX idx_singer_name (singer_name),
     INDEX idx_status (status),
     INDEX idx_created_at (created_at)
 ) AUTO_INCREMENT = 100000 COMMENT '歌曲表';
@@ -99,15 +100,3 @@ CREATE TABLE InnerG.playlist_songs
     INDEX idx_playlist_id (playlist_id),
     INDEX idx_song_id (song_id)  -- 移除了多余的逗号
 ) AUTO_INCREMENT = 300000 COMMENT '歌单歌曲关联表';
-
-CREATE TABLE InnerG.singer
-(
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(128) NOT NULL COMMENT '歌手名称',  -- 注释写的是"专辑名称"，但表是歌手表，建议改为"歌手名称"
-    description TEXT NULL COMMENT '描述',
-    avatar_url VARCHAR(512) NULL COMMENT '歌手头像URL',  -- 建议改为"歌手头像URL"
-    status TINYINT DEFAULT 1 NOT NULL COMMENT '状态',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at DATETIME NULL
-) AUTO_INCREMENT = 400000 COMMENT '歌手表';
