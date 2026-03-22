@@ -21,7 +21,7 @@ type RespWithData struct {
 
 func RespError(ctx *gin.Context, err error) {
 	Errno := errno.ConvertErr(err)
-	ctx.JSON(http.StatusInternalServerError, Base{
+	ctx.JSON(http.StatusOK, Base{
 		Code: strconv.FormatInt(Errno.ErrorCode, 10),
 		Msg:  Errno.ErrorMsg,
 	})
