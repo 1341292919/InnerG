@@ -27,3 +27,5 @@ func InitCache() {
 func NewRedisClient() _interface.UserCache {
 	return NewUserCache(_Ca)
 }
+
+func NewMusicClient() _interface.MusicCache { return NewMusicCache(_Ca) }

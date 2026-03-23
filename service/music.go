@@ -2,10 +2,12 @@ package service
 
 import (
 	"InnerG/dao"
+	"InnerG/dao/db/model"
 	"InnerG/pack"
 	"InnerG/types"
 	"context"
 	"fmt"
+	"log"
 	"sync"
 )
 
@@ -32,6 +34,16 @@ func (s *MusicSrv) GetPlaylistList(ctx context.Context, req *types.GetPlaylistLi
 
 func (s *MusicSrv) GetPlaylistDetail(ctx context.Context, req *types.GetPlaylistDetailReq) (*types.PlaylistDetail, error) {
 	musicDao := dao.NewMusicDao(ctx)
+	key := fmt.Sprintf("playListDetail:%s", req.PlaylistId)
+	var res *types.PlaylistDetail
+	var err error
+	if musicDao.Ca.IsKeyExist(ctx, key) {
+		res, err = musicDao.Ca.GetPlaylistDetailCache(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	}
 	data, exist, err := musicDao.Db.GetPlaylistById(ctx, req.PlaylistId)
 	if err != nil {
 		return nil, err
@@ -43,11 +55,28 @@ func (s *MusicSrv) GetPlaylistDetail(ctx context.Context, req *types.GetPlaylist
 	if err != nil {
 		return nil, err
 	}
-	return pack.BuildPlaylistDetail(data, songs), nil
+	res = pack.BuildPlaylistDetail(data, songs)
+	go func() {
+		err = musicDao.Ca.SetPlaylistDetailCache(context.Background(), key, res)
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+	return res, nil
 }
 
 func (s *MusicSrv) GetSongDetail(ctx context.Context, req *types.GetSongDetailReq) (*types.SongDetail, error) {
 	musicDao := dao.NewMusicDao(ctx)
+	key := fmt.Sprintf("song:%s", req.SongId)
+	var res *model.Song
+	var err error
+	if musicDao.Ca.IsKeyExist(ctx, key) {
+		res, err = musicDao.Ca.GetSongsCache(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		return pack.BuildSongDetail(res), nil
+	}
 	data, exist, err := musicDao.Db.GetSongById(ctx, req.SongId)
 	if err != nil {
 		return nil, err
@@ -55,6 +84,12 @@ func (s *MusicSrv) GetSongDetail(ctx context.Context, req *types.GetSongDetailRe
 	if !exist {
 		return nil, fmt.Errorf("song not exist")
 	}
+	go func() {
+		err = musicDao.Ca.SetSongsCache(context.Background(), key, data)
+		if err != nil {
+			log.Println(err)
+		}
+	}()
 	return pack.BuildSongDetail(data), nil
 }
 
