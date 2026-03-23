@@ -5,12 +5,13 @@ import (
 	"InnerG/dao/db/model"
 	"InnerG/pkg/constants"
 	"InnerG/pkg/ctl"
+	"InnerG/pkg/errno"
+	"InnerG/pkg/logger"
 	"InnerG/pkg/oss"
 	"InnerG/pkg/utils"
 	"InnerG/types"
 	"context"
 	"fmt"
-	"log"
 	"mime/multipart"
 	"path/filepath"
 	"strconv"
@@ -37,10 +38,11 @@ func (s *UserSrv) GetEmailCode(ctx context.Context, req *types.UserGetEmailCodeR
 	code := utils.GenerateRandomCode(constants.CommonEmailCodeLength)
 	err := userDao.Cache.SetEmailCode(ctx, emailCodeKey, code)
 	if err != nil {
+		logger.Log.Error(req.Email, " 发送验证码失败 ", err)
 		return err
 	}
 	// 发送验证码
-	log.Println(req.Email, "发送验证码:", code)
+	logger.Log.Info(req.Email, "发送验证码:", code)
 	return utils.MailSendCode(req.Email, code)
 }
 
@@ -52,6 +54,7 @@ func (s *UserSrv) VerifyEmailAndRegister(ctx context.Context, req *types.UserVer
 	}
 	code, err := userDao.Cache.GetEmailCode(ctx, emailCodeKey)
 	if err != nil {
+		logger.Log.Error("VerifyEmailAndRegister: ", errno.ConvertErr(err).Error())
 		return err
 	}
 	if code != req.VerifyCode {
@@ -60,6 +63,7 @@ func (s *UserSrv) VerifyEmailAndRegister(ctx context.Context, req *types.UserVer
 
 	_, exist, err := userDao.Db.IsUserExistByEmail(ctx, req.Email)
 	if err != nil {
+		logger.Log.Error("VerifyEmailAndRegister: ", errno.ConvertErr(err).Error())
 		return err
 	}
 	if exist {
@@ -73,10 +77,10 @@ func (s *UserSrv) VerifyEmailAndRegister(ctx context.Context, req *types.UserVer
 	}
 	newUser.SetDefaultAvatar()
 	if err = newUser.SetPassword(req.Password); err != nil {
+		logger.Log.Error("VerifyEmailAndRegister: ", errno.ConvertErr(err).Error())
 		return err
 	}
 
-	// 默认头像等
 	return userDao.Db.CreateNewUser(ctx, newUser)
 
 }
@@ -94,6 +98,7 @@ func (s *UserSrv) Login(ctx context.Context, req *types.UserLoginReq) (*model.Us
 		u, exist, err = userDao.Db.IsUserExistByAccount(ctx, req.Account)
 	}
 	if err != nil {
+		logger.Log.Error("Login: ", errno.ConvertErr(err).Error())
 		return nil, err
 	}
 	if !exist || !u.CheckPassword(req.Password) {
@@ -110,6 +115,7 @@ func (s *UserSrv) VerifyEmailAndLogin(ctx context.Context, req *types.UserVerify
 	}
 	code, err := userDao.Cache.GetEmailCode(ctx, emailCodeKey)
 	if err != nil {
+		logger.Log.Error("VerifyEmailAndLogin: ", errno.ConvertErr(err).Error())
 		return nil, err
 	}
 	if code != req.VerifyCode {
@@ -118,6 +124,7 @@ func (s *UserSrv) VerifyEmailAndLogin(ctx context.Context, req *types.UserVerify
 
 	u, exist, err := userDao.Db.IsUserExistByEmail(ctx, req.Email)
 	if err != nil {
+		logger.Log.Error("VerifyEmailAndLogin: ", errno.ConvertErr(err).Error())
 		return nil, err
 	}
 
@@ -132,6 +139,7 @@ func (s *UserSrv) GetUserInfo(ctx context.Context) (*model.User, error) {
 	userDao := dao.NewUserDao(ctx)
 	user, exist, err := userDao.Db.IsUserExistById(ctx, u.Id)
 	if err != nil {
+		logger.Log.Error("GetUserInfo: ", errno.ConvertErr(err).Error())
 		return nil, err
 	}
 	if !exist {
@@ -145,6 +153,7 @@ func (s *UserSrv) UpdateUserAccount(ctx context.Context, account string) error {
 	userDao := dao.NewUserDao(ctx)
 	user, exist, err := userDao.Db.IsUserExistByAccount(ctx, account)
 	if err != nil {
+		logger.Log.Error("UpdateUserAccount: ", errno.ConvertErr(err).Error())
 		return err
 	}
 	if exist {
@@ -164,6 +173,7 @@ func (s *UserSrv) UpdateUserName(ctx context.Context, userName string) error {
 		return err
 	}
 	if !exist {
+		logger.Log.Error("UpdateUserName: ", errno.ConvertErr(err).Error())
 		return fmt.Errorf("用户不存在")
 	}
 
@@ -182,6 +192,7 @@ func (s *UserSrv) UpdateUserGender(ctx context.Context, gender string) error {
 	userDao := dao.NewUserDao(ctx)
 	_, exist, err := userDao.Db.IsUserExistById(ctx, u.Id)
 	if err != nil {
+		logger.Log.Error("UpdateUserGender: ", errno.ConvertErr(err).Error())
 		return err
 	}
 	if !exist {
@@ -205,12 +216,14 @@ func (s *UserSrv) UpdateUserAvatar(ctx context.Context, file *multipart.FileHead
 	userDao := dao.NewUserDao(ctx)
 	err := oss.IsImage(file)
 	if err != nil {
+		logger.Log.Error("UpdateUserAvatar: ", errno.ConvertErr(err).Error())
 		return "", fmt.Errorf("check image failed: %w", err)
 	}
 	// 识别图片信息
 	fileName := fmt.Sprintf("%v_%v", u.Id, time.Now().Unix())
 	err = oss.SaveFile(file, constants.StorePath, fileName)
 	if err != nil {
+		logger.Log.Error("UpdateUserAvatar: ", errno.ConvertErr(err).Error())
 		return "", fmt.Errorf("save file failed: %w", err)
 	}
 	filePath := filepath.Join(constants.StorePath, fileName)

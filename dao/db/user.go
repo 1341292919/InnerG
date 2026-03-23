@@ -4,6 +4,7 @@ import (
 	"InnerG/dao/db/model"
 	_interface "InnerG/dao/interface"
 	"InnerG/pkg/constants"
+	"InnerG/pkg/errno"
 	"context"
 	"errors"
 	"gorm.io/gorm"
@@ -19,7 +20,11 @@ func NewUserDB(db *gorm.DB) _interface.UserDB {
 	}
 }
 func (db *userDB) CreateNewUser(ctx context.Context, user *model.User) error {
-	return db.client.WithContext(ctx).Table(constants.UserTableName).Create(user).Error
+	err := db.client.WithContext(ctx).Table(constants.UserTableName).Create(user).Error
+	if err != nil {
+		return errno.NewErr(errno.MySQLDBErrorCode, "CreateNewUser: "+err.Error())
+	}
+	return nil
 }
 
 func (db *userDB) IsUserExistById(ctx context.Context, id string) (*model.User, bool, error) {
@@ -29,7 +34,7 @@ func (db *userDB) IsUserExistById(ctx context.Context, id string) (*model.User, 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, false, nil
 		}
-		return nil, false, err
+		return nil, false, errno.NewErr(errno.MySQLDBErrorCode, "IsUserExistById: "+err.Error())
 	}
 	return user, true, nil
 }
@@ -41,7 +46,7 @@ func (db *userDB) IsUserExistByEmail(ctx context.Context, email string) (*model.
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, false, nil
 		}
-		return nil, false, err
+		return nil, false, errno.NewErr(errno.MySQLDBErrorCode, "IsUserExistByEmail: "+err.Error())
 	}
 	return user, true, nil
 }
@@ -53,23 +58,51 @@ func (db *userDB) IsUserExistByAccount(ctx context.Context, account string) (*mo
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, false, nil
 		}
-		return nil, false, err
+		return nil, false, errno.NewErr(errno.MySQLDBErrorCode, "IsUserExistByAccount: "+err.Error())
 	}
 	return user, true, nil
 }
 
 func (db *userDB) UpdateUserAccount(ctx context.Context, account string, id string) error {
-	return db.client.WithContext(ctx).Table(constants.UserTableName).Where("id = ?", id).Update("account", account).Error
+	if err := db.client.WithContext(ctx).
+		Table(constants.UserTableName).
+		Where("id = ?", id).
+		Update("account", account).
+		Error; err != nil {
+		return errno.NewErr(errno.MySQLDBErrorCode, "UpdateUserAccount: "+err.Error())
+	}
+	return nil
 }
 
 func (db *userDB) UpdateUserName(ctx context.Context, userName string, id string) error {
-	return db.client.WithContext(ctx).Table(constants.UserTableName).Where("id = ?", id).Update("username", userName).Error
+	if err := db.client.WithContext(ctx).
+		Table(constants.UserTableName).
+		Where("id = ?", id).
+		Update("username", userName).
+		Error; err != nil {
+		return errno.NewErr(errno.MySQLDBErrorCode, "UpdateUserName: "+err.Error())
+	}
+	return nil
 }
 
 func (db *userDB) UpdateUserGender(ctx context.Context, gender string, id string) error {
-	return db.client.WithContext(ctx).Table(constants.UserTableName).Where("id = ?", id).Update("gender", gender).Error
+	if err := db.client.WithContext(ctx).
+		Table(constants.UserTableName).
+		Where("id = ?", id).
+		Update("gender", gender).
+		Error; err != nil {
+		return errno.NewErr(errno.MySQLDBErrorCode, "UpdateUserGender: "+err.Error())
+	}
+	return nil
 }
 
 func (db *userDB) UpdateUserAvatar(ctx context.Context, id, avatarUrl string) error {
-	return db.client.WithContext(ctx).Table(constants.UserTableName).Where("id = ?", id).Update("avatar", avatarUrl).Error
+	if err := db.client.WithContext(ctx).
+		Table(constants.UserTableName).
+		Where("id = ?", id).
+		Update("avatar", avatarUrl).
+		Error; err != nil {
+		return errno.NewErr(errno.MySQLDBErrorCode, "UpdateUserAvatar: "+err.Error())
+	}
+	return nil
 }

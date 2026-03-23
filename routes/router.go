@@ -3,11 +3,21 @@ package routes
 import (
 	api "InnerG/api/v1"
 	"InnerG/pkg/jwt"
+	"InnerG/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
 func NewRouter() *gin.Engine {
-	r := gin.Default()
+	r := gin.New()
+
+	// 设置 Gin 的日志输出到自定义 Writer
+	gin.DefaultWriter = logger.GinWriter{}
+	gin.DefaultErrorWriter = logger.GinWriter{}
+
+	// 使用自定义的恢复中间件（可选，也可以使用 gin.Recovery()）
+	r.Use(gin.Recovery())
+	r.Use(logger.GinLoggerMiddleware())
+
 	v1 := r.Group("api/v1")
 	{
 		v1.POST("user/email/code", api.UserGetEmailCodeHandler())

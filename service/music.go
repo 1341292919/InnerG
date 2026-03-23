@@ -4,6 +4,7 @@ import (
 	"InnerG/dao"
 	"InnerG/dao/db/model"
 	"InnerG/pack"
+	"InnerG/pkg/logger"
 	"InnerG/types"
 	"context"
 	"fmt"
@@ -27,6 +28,7 @@ func (s *MusicSrv) GetPlaylistList(ctx context.Context, req *types.GetPlaylistLi
 	musicDao := dao.NewMusicDao(ctx)
 	list, total, err := musicDao.Db.GetPlaylistList(ctx, req.PageNum, req.PageSize)
 	if err != nil {
+		logger.Log.Error("GetPlaylistList: ", err.Error())
 		return nil, -1, err
 	}
 	return pack.BuildPlaylistList(list), total, nil
@@ -40,12 +42,14 @@ func (s *MusicSrv) GetPlaylistDetail(ctx context.Context, req *types.GetPlaylist
 	if musicDao.Ca.IsKeyExist(ctx, key) {
 		res, err = musicDao.Ca.GetPlaylistDetailCache(ctx, key)
 		if err != nil {
+			logger.Log.Error("GetPlaylistList: ", err.Error())
 			return nil, err
 		}
 		return res, nil
 	}
 	data, exist, err := musicDao.Db.GetPlaylistById(ctx, req.PlaylistId)
 	if err != nil {
+		logger.Log.Error("GetPlaylistList: ", err.Error())
 		return nil, err
 	}
 	if !exist {
@@ -53,11 +57,13 @@ func (s *MusicSrv) GetPlaylistDetail(ctx context.Context, req *types.GetPlaylist
 	}
 	songs, err := musicDao.Db.GetPlaylistSongListByPlaylistId(ctx, req.PlaylistId)
 	if err != nil {
+		logger.Log.Error("GetPlaylistList: ", err.Error())
 		return nil, err
 	}
 	res = pack.BuildPlaylistDetail(data, songs)
 	go func() {
 		err = musicDao.Ca.SetPlaylistDetailCache(context.Background(), key, res)
+		logger.Log.Error("go func GetPlaylistList: ", err.Error())
 		if err != nil {
 			log.Println(err)
 		}
@@ -73,12 +79,14 @@ func (s *MusicSrv) GetSongDetail(ctx context.Context, req *types.GetSongDetailRe
 	if musicDao.Ca.IsKeyExist(ctx, key) {
 		res, err = musicDao.Ca.GetSongsCache(ctx, key)
 		if err != nil {
+			logger.Log.Error("GetSongDetail: ", err.Error())
 			return nil, err
 		}
 		return pack.BuildSongDetail(res), nil
 	}
 	data, exist, err := musicDao.Db.GetSongById(ctx, req.SongId)
 	if err != nil {
+		logger.Log.Error("GetSongDetail: ", err.Error())
 		return nil, err
 	}
 	if !exist {
@@ -87,6 +95,7 @@ func (s *MusicSrv) GetSongDetail(ctx context.Context, req *types.GetSongDetailRe
 	go func() {
 		err = musicDao.Ca.SetSongsCache(context.Background(), key, data)
 		if err != nil {
+			logger.Log.Error("GetSongDetail: ", err.Error())
 			log.Println(err)
 		}
 	}()
@@ -97,6 +106,7 @@ func (s *MusicSrv) GetSongDetailList(ctx context.Context, req *types.GetSongDeta
 	musicDao := dao.NewMusicDao(ctx)
 	list, total, err := musicDao.Db.GetSongList(ctx, req.PageNum, req.PageSize)
 	if err != nil {
+		logger.Log.Error("GetSongDetailList: ", err.Error())
 		return nil, -1, err
 	}
 	return pack.BuildSongDetailList(list), total, nil

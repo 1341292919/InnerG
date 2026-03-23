@@ -15,6 +15,7 @@ var (
 	Api          *api
 	Oss          *oss
 	MongoDb      *mongodb
+	Log          *log
 	runtimeViper = viper.New()
 )
 
@@ -55,4 +56,5 @@ func configMapping() {
 	Service = &c.Service
 	Api = &c.Api
 	MongoDb = &c.MongoDb
+	Log = &c.Log
 }

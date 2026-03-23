@@ -8,6 +8,7 @@ import (
 	"InnerG/pkg/constants"
 	"InnerG/pkg/ctl"
 	"InnerG/pkg/errno"
+	"InnerG/pkg/logger"
 	"InnerG/pkg/utils"
 	"InnerG/types"
 	"bufio"
@@ -16,7 +17,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -52,6 +52,7 @@ func (svc *ContactSrv) NewChatSession(ctx context.Context, req *types.NewChatSes
 		Messages:  []MongoModel.Message{},
 	})
 	if err != nil {
+		logger.Log.Error("NewChatSession: ", errno.ConvertErr(err).Error())
 		return "", err
 	}
 	return sessionId, nil
@@ -74,6 +75,7 @@ func (svc *ContactSrv) StreamChat(ctx *gin.Context, req *types.StreamChatReq) er
 	// 添加会话上文
 	flusher, ok := ctx.Writer.(http.Flusher)
 	if !ok {
+		logger.Log.Error("get http flusher error")
 		return fmt.Errorf("get http flusher error")
 	}
 	message := make([]utils.Message, 0)
@@ -84,6 +86,7 @@ func (svc *ContactSrv) StreamChat(ctx *gin.Context, req *types.StreamChatReq) er
 	shouldParseTitle := len(message) == 2
 	resp, err := utils.SendMessageToAPI(message)
 	if err != nil {
+		logger.Log.Error("send message to api error: ", err.Error())
 		return errno.InternalServiceError.WithMessage(err.Error())
 	}
 	defer resp.Body.Close()
@@ -168,7 +171,7 @@ loop:
 		go func() {
 			err = dao.Mongo.UpdateSessionTitle(context.Background(), chatHistory.SessionID, title)
 			if err != nil {
-				log.Println("update session title error: " + err.Error())
+				logger.Log.Error("go func : update session title error :", err.Error())
 			}
 		}()
 	}
@@ -193,6 +196,7 @@ func (svc *ContactSrv) GetUserSessionHistory(ctx context.Context, req *types.Get
 	dao := dao.NewContactDao(ctx)
 	sessionList, total, err := dao.Mongo.GetSessionByUserIdWithPagination(ctx, u.Id, req.PageNum, req.PageSize)
 	if err != nil {
+		logger.Log.Error("GetUserSessionHistory: ", errno.ConvertErr(err).Error())
 		return nil, -1, err
 	}
 	return pack.BuildSessionList(sessionList), total, nil
@@ -208,6 +212,7 @@ func (svc *ContactSrv) GetUserSessionDetail(ctx context.Context, req *types.GetU
 		return nil, fmt.Errorf("session not exist")
 	}
 	if u.Id != data.UserID {
+		logger.Log.Info(u.Id, "tried to query session ", req.SessionId, " which is not belong to him")
 		return nil, fmt.Errorf("session not avaliable")
 	}
 	return pack.BuildSessionDetail(data), nil
@@ -224,6 +229,8 @@ func (svc *ContactSrv) DeleteUserSession(ctx context.Context, sessionId string) 
 	}
 	u := ctl.GetUserInfo(ctx)
 	if u.Id != data.UserID {
+		logger.Log.Info(u.Id, "tried to delete session ", sessionId, " which is not belong to him")
+		return fmt.Errorf("session not avaliable")
 	}
 	return contactDao.Mongo.DeleteSession(ctx, sessionId)
 }
@@ -256,6 +263,7 @@ func ParseStreamLine(line string) *types.StreamResp {
 	}
 
 	if err := json.Unmarshal([]byte(jsonStr), &apiResp); err != nil {
+		logger.Log.Error("ParseStreamLine: ", err.Error())
 		return nil
 	}
 

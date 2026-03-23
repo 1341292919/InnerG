@@ -7,4 +7,9 @@ const (
 	AuthAccessExpiredCode    = 30003 // 访问令牌过期
 	AuthRefreshExpiredCode   = 30004 // 刷新令牌过期
 	InternalServiceErrorCode = 50000
+
+	// dao
+	MySQLDBErrorCode = 50001
+	MongoDBErrorCode = 50002
+	RedisDBErrorCode = 50003
 )

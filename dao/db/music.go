@@ -4,6 +4,7 @@ import (
 	"InnerG/dao/db/model"
 	_interface "InnerG/dao/interface"
 	"InnerG/pkg/constants"
+	"InnerG/pkg/errno"
 	"context"
 	"errors"
 	"gorm.io/gorm"
@@ -29,7 +30,7 @@ func (db *musicDB) GetPlaylistList(ctx context.Context, pageNum, pageSize int) (
 	var total int64
 	err := db.client.WithContext(ctx).Table(constants.PlaylistTableName).Where("status <> ?", 2).Count(&total).Error
 	if err != nil {
-		return nil, -1, err
+		return nil, -1, errno.NewErr(errno.MySQLDBErrorCode, "GetPlaylistList Count: "+err.Error())
 	}
 	list := make([]*model.Playlist, 0)
 	err = db.client.WithContext(ctx).
@@ -40,7 +41,7 @@ func (db *musicDB) GetPlaylistList(ctx context.Context, pageNum, pageSize int) (
 		Offset((pageNum - 1) * pageSize).
 		Find(&list).Error
 	if err != nil {
-		return nil, -1, err
+		return nil, -1, errno.NewErr(errno.MySQLDBErrorCode, "GetPlaylistList Find: "+err.Error())
 	}
 	return list, int(total), nil
 }
@@ -52,7 +53,7 @@ func (db *musicDB) GetPlaylistById(ctx context.Context, id string) (*model.Playl
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, false, nil
 		}
-		return nil, false, err
+		return nil, false, errno.NewErr(errno.MySQLDBErrorCode, "GetPlaylistById: "+err.Error())
 	}
 	return playlist, true, nil
 }
@@ -68,7 +69,10 @@ func (db *musicDB) GetPlaylistSongListByPlaylistId(ctx context.Context, playlist
 		Where("s.deleted_at IS NULL").
 		Order("ps.sort_order ASC, ps.id ASC").
 		Scan(&res).Error
-	return res, err
+	if err != nil {
+		return nil, errno.NewErr(errno.MySQLDBErrorCode, "GetPlaylistSongListByPlaylistId: "+err.Error())
+	}
+	return res, nil
 }
 
 func (db *musicDB) GetSongList(ctx context.Context, pageNum, pageSize int) ([]*model.Song, int, error) {
@@ -81,7 +85,7 @@ func (db *musicDB) GetSongList(ctx context.Context, pageNum, pageSize int) ([]*m
 	var total int64
 	err := db.client.WithContext(ctx).Table(constants.SongTableName).Where("status <> ?", 2).Count(&total).Error
 	if err != nil {
-		return nil, -1, err
+		return nil, -1, errno.NewErr(errno.MySQLDBErrorCode, "GetSongList Count: "+err.Error())
 	}
 	list := make([]*model.Song, 0)
 	err = db.client.WithContext(ctx).
@@ -91,7 +95,7 @@ func (db *musicDB) GetSongList(ctx context.Context, pageNum, pageSize int) ([]*m
 		Limit(pageSize).
 		Find(&list).Error
 	if err != nil {
-		return nil, -1, err
+		return nil, -1, errno.NewErr(errno.MySQLDBErrorCode, "GetSongList Find: "+err.Error())
 	}
 	return list, int(total), nil
 }
@@ -103,7 +107,7 @@ func (db *musicDB) GetSongById(ctx context.Context, id string) (*model.Song, boo
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, false, nil
 		}
-		return nil, false, err
+		return nil, false, errno.NewErr(errno.MySQLDBErrorCode, "GetSongById: "+err.Error())
 	}
 	return song, true, nil
 }

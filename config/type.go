@@ -8,6 +8,7 @@ type config struct {
 	Service service
 	Api     api
 	MongoDb mongodb
+	Log     log
 }
 type mySQL struct {
 	Addr     string
@@ -56,4 +57,10 @@ type mongodb struct {
 	Database string
 	Username string
 	Password string
+}
+
+type log struct {
+	LogPath      string `mapstructure:"log_path"`
+	LogPrefix    string `mapstructure:"log_prefix"`
+	GinLogPrefix string `mapstructure:"gin_log_prefix"`
 }

@@ -4,6 +4,7 @@ import (
 	_interface "InnerG/dao/interface"
 	"InnerG/dao/mongo/model"
 	"InnerG/pkg/constants"
+	"InnerG/pkg/errno"
 	"context"
 	"errors"
 	"fmt"
@@ -24,8 +25,10 @@ func NewContactMongoDB(db *mongo.Database) _interface.ContactMongoDB {
 }
 
 func (m *contactMongoDB) NewChatSession(ctx context.Context, session *model.ChatSession) error {
-	_, err := m.client.Collection(constants.ChatSessionCollection).InsertOne(ctx, session)
-	return err
+	if _, err := m.client.Collection(constants.ChatSessionCollection).InsertOne(ctx, session); err != nil {
+		return errno.NewErr(errno.MongoDBErrorCode, "NewChatSession: "+err.Error())
+	}
+	return nil
 }
 
 func (m *contactMongoDB) IsQuerySessionExist(ctx context.Context, sessionId string) (bool, *model.ChatSession, error) {
@@ -41,7 +44,7 @@ func (m *contactMongoDB) IsQuerySessionExist(ctx context.Context, sessionId stri
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return false, nil, fmt.Errorf("IsQuerySessionExist:Session not exist")
 		}
-		return false, nil, err
+		return false, nil, errno.NewErr(errno.MongoDBErrorCode, "IsQuerySessionExist: "+err.Error())
 	}
 	return true, &session, nil
 }
@@ -60,7 +63,10 @@ func (m *contactMongoDB) InsertMessageToSession(ctx context.Context, sessionId s
 		},
 	}
 	_, err := m.client.Collection(constants.ChatSessionCollection).UpdateOne(ctx, filter, update)
-	return err
+	if err != nil {
+		return errno.NewErr(errno.MongoDBErrorCode, "InsertMessageToSession: "+err.Error())
+	}
+	return nil
 }
 
 func (m *contactMongoDB) GetSessionByUserId(ctx context.Context, userId string) ([]*model.ChatSession, int, error) {
@@ -74,10 +80,13 @@ func (m *contactMongoDB) GetSessionByUserId(ctx context.Context, userId string) 
 	cursor, err := m.client.Collection(constants.ChatSessionCollection).Find(ctx, filter)
 	defer cursor.Close(ctx)
 	if err != nil {
-		return nil, -1, err
+		return nil, -1, errno.NewErr(errno.MongoDBErrorCode, "GetSessionByUserId: "+err.Error())
 	}
 	err = cursor.All(ctx, &sessionList)
-	return sessionList, len(sessionList), err
+	if err != nil {
+		return nil, -1, errno.NewErr(errno.MongoDBErrorCode, "GetSessionByUserId: "+err.Error())
+	}
+	return sessionList, len(sessionList), nil
 }
 
 func (m *contactMongoDB) UpdateSessionTitle(ctx context.Context, sessionId string, title string) error {
@@ -89,7 +98,10 @@ func (m *contactMongoDB) UpdateSessionTitle(ctx context.Context, sessionId strin
 		},
 	}
 	_, err := m.client.Collection(constants.ChatSessionCollection).UpdateOne(ctx, filter, update)
-	return err
+	if err != nil {
+		return errno.NewErr(errno.MongoDBErrorCode, "UpdateSessionTitle: "+err.Error())
+	}
+	return nil
 }
 
 func (m *contactMongoDB) DeleteSession(ctx context.Context, sessionId string) error {
@@ -101,6 +113,9 @@ func (m *contactMongoDB) DeleteSession(ctx context.Context, sessionId string) er
 		},
 	}
 	_, err := m.client.Collection(constants.ChatSessionCollection).UpdateOne(ctx, filter, update)
+	if err != nil {
+		return errno.NewErr(errno.MongoDBErrorCode, "DeleteSession: "+err.Error())
+	}
 	return err
 }
 
@@ -115,7 +130,7 @@ func (m *contactMongoDB) GetSessionByUserIdWithPagination(ctx context.Context, u
 	// 获取总数
 	total, err := m.client.Collection(constants.ChatSessionCollection).CountDocuments(ctx, filter)
 	if err != nil {
-		return nil, -1, err
+		return nil, -1, errno.NewErr(errno.MongoDBErrorCode, "GetSessionByUserIdWithPagination CountDocuments: "+err.Error())
 	}
 
 	// 计算跳过数量
@@ -132,13 +147,14 @@ func (m *contactMongoDB) GetSessionByUserIdWithPagination(ctx context.Context, u
 
 	cursor, err := m.client.Collection(constants.ChatSessionCollection).Find(ctx, filter, opts)
 	if err != nil {
-		return nil, -1, err
+		return nil, -1, errno.NewErr(errno.MongoDBErrorCode, "GetSessionByUserIdWithPagination Find: "+err.Error())
 	}
 	defer cursor.Close(ctx)
 
 	err = cursor.All(ctx, &sessionList)
 	if err != nil {
-		return nil, -1, err
+		return nil, -1, errno.NewErr(errno.MongoDBErrorCode, "GetSessionByUserIdWithPagination All: "+err.Error())
+
 	}
 
 	return sessionList, int(total), nil

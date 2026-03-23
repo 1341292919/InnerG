@@ -24,7 +24,7 @@ func InitMySQL() {
 
 	var ormLogger logger.Interface
 	if gin.Mode() == "debug" {
-		ormLogger = logger.Default.LogMode(logger.Info)
+		ormLogger = logger.Default.LogMode(logger.Silent)
 	} else {
 		ormLogger = logger.Default
 	}
