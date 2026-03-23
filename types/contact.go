@@ -38,7 +38,6 @@ type DeleteUserSessionResp struct {
 type Session struct {
 	UserId        string
 	SessionId     string
-	Model         string
 	Title         string
 	UpdatedAt     int64
 	CreatedAt     int64
@@ -51,7 +50,6 @@ type Session struct {
 type SessionDetail struct {
 	UserId     string
 	SessionId  string
-	Model      string
 	Title      string
 	Messages   []Message
 	MessageNum int
