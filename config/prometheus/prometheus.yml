@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'gin-app'
+    static_configs:
+      - targets: ['InnerG_server:20000']
+    metrics_path: '/metrics'
+    scrape_interval: 1s

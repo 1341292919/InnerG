@@ -2,9 +2,11 @@ package routes
 
 import (
 	api "InnerG/api/v1"
+	"InnerG/middleware/metrics"
 	"InnerG/pkg/jwt"
 	"InnerG/pkg/logger"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func NewRouter() *gin.Engine {
@@ -17,6 +19,8 @@ func NewRouter() *gin.Engine {
 	// 使用自定义的恢复中间件（可选，也可以使用 gin.Recovery()）
 	r.Use(gin.Recovery())
 	r.Use(logger.GinLoggerMiddleware())
+	r.Use(metrics.QPSMiddleware())
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	v1 := r.Group("api/v1")
 	{

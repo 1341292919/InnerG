@@ -73,7 +73,7 @@ func (l *GinLogger) rotate() error {
 
 	l.currentDay = today
 	l.file = file
-	l.writer = io.MultiWriter(file, os.Stdout)
+	l.writer = file
 
 	return nil
 }
@@ -179,21 +179,36 @@ func (gw GinWriter) Write(p []byte) (n int, err error) {
 func GinLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
-
-		// 处理请求
+		// 先处理请求
 		c.Next()
-
-		// 记录详细日志
-		if GinLog != nil {
+		// 再记录日志（此时状态码和耗时都是正确的）
+		if !shouldSkipLog(c.Request.URL.Path) && GinLog != nil {
 			GinLog.Infof("[%s] %s | %d | %s | %s",
 				c.Request.Method,
 				c.Request.URL.Path,
-				c.Writer.Status(),
-				time.Since(start),
+				c.Writer.Status(), // ✅ 真实状态码
+				time.Since(start), // ✅ 真实处理时间
 				c.ClientIP(),
 			)
 		}
 	}
+}
+
+// 定义不需要记录日志的路径
+func shouldSkipLog(path string) bool {
+	skipPaths := []string{
+		"/metrics",
+		"/health", // 健康检查
+		"/ping",   // 心跳检测
+		"/favicon.ico",
+	}
+
+	for _, skip := range skipPaths {
+		if path == skip {
+			return true
+		}
+	}
+	return false
 }
 
 // CloseGinLog 关闭Gin日志文件
