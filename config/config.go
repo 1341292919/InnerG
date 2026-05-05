@@ -14,6 +14,7 @@ var (
 	Service      *service
 	Api          *api
 	Oss          *oss
+	Snowflake    *snowflake
 	MongoDb      *mongodb
 	Log          *log
 	runtimeViper = viper.New()
@@ -57,4 +58,5 @@ func configMapping() {
 	Api = &c.Api
 	MongoDb = &c.MongoDb
 	Log = &c.Log
+	Snowflake = &c.SnowFlake
 }

@@ -1,14 +1,15 @@
 package config
 
 type config struct {
-	MySQL   mySQL
-	OSS     oss
-	Redis   redis
-	Smtp    smtp
-	Service service
-	Api     api
-	MongoDb mongodb
-	Log     log
+	MySQL     mySQL
+	OSS       oss
+	Redis     redis
+	Smtp      smtp
+	Service   service
+	Api       api
+	MongoDb   mongodb
+	Log       log
+	SnowFlake snowflake
 }
 type mySQL struct {
 	Addr     string
@@ -63,4 +64,8 @@ type log struct {
 	LogPath      string `mapstructure:"log_path"`
 	LogPrefix    string `mapstructure:"log_prefix"`
 	GinLogPrefix string `mapstructure:"gin_log_prefix"`
+}
+type snowflake struct {
+	WorkerID      int64 `mapstructure:"worker-id"`
+	DatancenterID int64 `mapstructure:"datancenter-id"`
 }

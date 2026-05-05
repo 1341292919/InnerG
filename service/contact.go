@@ -17,7 +17,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 	"io"
-	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,11 +27,16 @@ import (
 var ContactSrvIns *ContactSrv
 var ContactSrvOnce sync.Once
 
-type ContactSrv struct{} // 空结构体，只包含方法
+type ContactSrv struct {
+	sf *utils.Snowflake
+}
 
 func GetContactSrv() *ContactSrv {
 	ContactSrvOnce.Do(func() {
-		ContactSrvIns = &ContactSrv{}
+		sf, _ := utils.NewSnowflake(config.Snowflake.DatancenterID, config.Snowflake.WorkerID)
+		ContactSrvIns = &ContactSrv{
+			sf: sf,
+		}
 	})
 	return ContactSrvIns
 }
@@ -41,8 +45,9 @@ func GetContactSrv() *ContactSrv {
 func (svc *ContactSrv) NewChatSession(ctx context.Context, req *types.NewChatSessionReq) (string, error) {
 	u := ctl.GetUserInfo(ctx)
 	dao := dao.NewContactDao(ctx)
-	sessionId := strconv.FormatInt(rand.Int63(), 10)
-	err := dao.Mongo.NewChatSession(ctx, &MongoModel.ChatSession{
+	dbId, err := svc.sf.NextVal()
+	sessionId := strconv.FormatInt(dbId, 10)
+	err = dao.Mongo.NewChatSession(ctx, &MongoModel.ChatSession{
 		UserID:    u.Id,
 		SessionID: sessionId,
 		Model:     config.Api.Model,
