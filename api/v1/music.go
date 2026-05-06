@@ -16,7 +16,7 @@ func GetPlaylistList() gin.HandlerFunc {
 			return
 		}
 		l := service.GetMusicSrv()
-		list, total, err := l.GetPlaylistList(ctx.Request.Context(), &req)
+		list, total, err := l.GetRecommendList(ctx.Request.Context(), &req)
 		if err != nil {
 			pack.RespError(ctx, err)
 			return
