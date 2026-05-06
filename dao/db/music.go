@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"gorm.io/gorm"
+	"math/rand"
 )
 
 type musicDB struct {
@@ -42,6 +43,41 @@ func (db *musicDB) GetPlaylistList(ctx context.Context, pageNum, pageSize int) (
 		Find(&list).Error
 	if err != nil {
 		return nil, -1, errno.NewErr(errno.MySQLDBErrorCode, "GetPlaylistList Find: "+err.Error())
+	}
+	return list, int(total), nil
+}
+
+func (db *musicDB) GetRecommendPlayList(ctx context.Context, pageSize int) ([]*model.Playlist, int, error) {
+	var total int64
+	err := db.client.WithContext(ctx).Table(constants.PlaylistTableName).Where("status <> ?", 2).Count(&total).Error
+	if err != nil {
+		return nil, -1, errno.NewErr(errno.MySQLDBErrorCode, "GetRecommendPlayList Count: "+err.Error())
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+	var allIDs []string
+	err = db.client.WithContext(ctx).Table(constants.PlaylistTableName).Where("status <> ?", 2).Pluck("id", &allIDs).Error
+	if err != nil {
+		return nil, -1, errno.NewErr(errno.MySQLDBErrorCode, "GetRecommendPlayList Pluck: "+err.Error())
+	}
+	if len(allIDs) == 0 {
+		return make([]*model.Playlist, 0), int(total), nil
+	}
+	if pageSize > len(allIDs) {
+		pageSize = len(allIDs)
+	}
+	rand.Shuffle(len(allIDs), func(i, j int) {
+		allIDs[i], allIDs[j] = allIDs[j], allIDs[i]
+	})
+	selectedIDs := allIDs[:pageSize]
+	list := make([]*model.Playlist, 0)
+	err = db.client.WithContext(ctx).
+		Table(constants.PlaylistTableName).
+		Where("id IN ?", selectedIDs).
+		Find(&list).Error
+	if err != nil {
+		return nil, -1, errno.NewErr(errno.MySQLDBErrorCode, "GetRecommendPlayList Find: "+err.Error())
 	}
 	return list, int(total), nil
 }

@@ -34,6 +34,16 @@ func (s *MusicSrv) GetPlaylistList(ctx context.Context, req *types.GetPlaylistLi
 	return pack.BuildPlaylistList(list), total, nil
 }
 
+func (s *MusicSrv) GetRecommendList(ctx context.Context, req *types.GetPlaylistListReq) ([]*types.Playlist, int, error) {
+	musicDao := dao.NewMusicDao(ctx)
+	list, total, err := musicDao.Db.GetRecommendPlayList(ctx, req.PageSize)
+	if err != nil {
+		logger.Log.Error("GetRecommendList: ", err.Error())
+		return nil, -1, err
+	}
+	return pack.BuildPlaylistList(list), total, nil
+}
+
 func (s *MusicSrv) GetPlaylistDetail(ctx context.Context, req *types.GetPlaylistDetailReq) (*types.PlaylistDetail, error) {
 	musicDao := dao.NewMusicDao(ctx)
 	key := fmt.Sprintf("playListDetail:%s", req.PlaylistId)
