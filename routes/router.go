@@ -51,6 +51,9 @@ func NewRouter() *gin.Engine {
 			authed.GET("music/playlist/detail", api.GetPlaylistDetail())
 			authed.GET("music/song/list", api.GetSongDetailList())
 			authed.GET("music/song/detail", api.GetSongDetail())
+
+			// 社交聊天
+			authed.GET("ws/connection", api.WebSocketConnectionHandler())
 		}
 	}
 	return r

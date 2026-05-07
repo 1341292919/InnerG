@@ -61,6 +61,7 @@ type mongodb struct {
 }
 
 type log struct {
+	Level        string `mapstructure:"level"`
 	LogPath      string `mapstructure:"log_path"`
 	LogPrefix    string `mapstructure:"log_prefix"`
 	GinLogPrefix string `mapstructure:"gin_log_prefix"`

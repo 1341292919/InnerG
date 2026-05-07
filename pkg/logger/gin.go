@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"InnerG/config"
+	"InnerG/pkg/constants"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"io"
@@ -73,8 +75,17 @@ func (l *GinLogger) rotate() error {
 
 	l.currentDay = today
 	l.file = file
-	l.writer = file
 
+	switch config.Log.Level {
+	case constants.DevelopmentEnvironment:
+		l.writer = io.MultiWriter(file, os.Stdout)
+	case constants.ProductionEnvironment:
+		l.writer = file
+	case constants.DebugEnvironment:
+		l.writer = os.Stdout
+	default:
+		l.writer = os.Stdout
+	}
 	return nil
 }
 
