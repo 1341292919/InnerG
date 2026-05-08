@@ -10,6 +10,7 @@ type config struct {
 	MongoDb   mongodb
 	Log       log
 	SnowFlake snowflake
+	RabbitMq  rabbitmq
 }
 type mySQL struct {
 	Addr     string
@@ -69,4 +70,10 @@ type log struct {
 type snowflake struct {
 	WorkerID      int64 `mapstructure:"worker-id"`
 	DatancenterID int64 `mapstructure:"datancenter-id"`
+}
+
+type rabbitmq struct {
+	Addr     string
+	Username string
+	Password string
 }

@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+
 	"github.com/bytedance/gopkg/util/logger"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
@@ -17,6 +18,7 @@ var (
 	Snowflake    *snowflake
 	MongoDb      *mongodb
 	Log          *log
+	RabbitMq     *rabbitmq
 	runtimeViper = viper.New()
 )
 
@@ -59,4 +61,5 @@ func configMapping() {
 	MongoDb = &c.MongoDb
 	Log = &c.Log
 	Snowflake = &c.SnowFlake
+	RabbitMq = &c.RabbitMq
 }

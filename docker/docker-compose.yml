@@ -60,6 +60,20 @@ services:
     networks:
       - InnerG
 
+  # RabbitMQ 消息队列服务，带管理界面
+  InnerG-rabbitmq:
+    container_name: InnerG-rabbitmq
+    image: rabbitmq:4.0-management-alpine
+    ports:
+      - "5672:5672"   # AMQP 协议端口（应用连接用）
+      - "15672:15672" # Web 管理界面端口
+    volumes:
+      - ./data/rabbitmq:/var/lib/rabbitmq
+    env_file:
+      - "./env/rabbitmq.env"
+    networks:
+      - InnerG
+
   InnerG_server:
     container_name: InnerG_server
     image: innerg:1.0
@@ -76,6 +90,7 @@ services:
       - InnerG-mongodb
       - InnerG-grafana
       - InnerG-prometheus
+      - InnerG-rabbitmq
     restart: unless-stopped
 
 networks:

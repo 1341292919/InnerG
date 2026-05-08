@@ -6,6 +6,7 @@ import (
 	"InnerG/middleware/metrics"
 	"InnerG/pkg/logger"
 	"InnerG/routes"
+	"InnerG/service/websocket"
 	"fmt"
 )
 
@@ -22,6 +23,8 @@ func main() {
 	defer logger.CloseAll()
 	r := routes.NewRouter()
 	metrics.StartMetricsUpdater()
+	// 消息队列启动
+	websocket.NewWebsocketConsume().Run()
 	_ = r.Run(config.Service.Address)
 	fmt.Println("启动配成功...")
 }
