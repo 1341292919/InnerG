@@ -9,6 +9,7 @@ type Message struct {
 	TargetID  int64  `json:"target_id"`
 	Content   string `json:"content"`
 	Type      int8   `json:"type"`
+	Status    int8   `json:"status"`
 	CreatedAt int64  `json:"created_at"`
 }
 

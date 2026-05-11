@@ -74,7 +74,7 @@ func StoreMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
 		MsgID:     m.ID,
 		Type:      m.Type,
 		CreatedAt: m.CreatedAt,
-		Status:    0,
+		Status:    m.Status,
 	}
 	websocketDao := dao.NewWebsocketDao(context.Background())
 	err = websocketDao.Db.InsertMessage(context.Background(), dbM)

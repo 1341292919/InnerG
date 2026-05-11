@@ -102,6 +102,7 @@ func (ws *WebSocketSrv) RouteMessage(m message.Message) error {
 	// 加入消息队列
 	// 离线消息
 	if !pushed {
+		m.Status = constants.MessageUnPushedStatus
 		if err = ws.sender.SendMessage(constants.OfflineMessageTopic, m); err != nil {
 			logger.Log.Error("RouteMessage:TaskQueue:SendMessage: ", err)
 			return err

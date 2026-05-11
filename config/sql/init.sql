@@ -109,7 +109,7 @@ CREATE TABLE InnerG.messages (
                                  to_user BIGINT NOT NULL,                  -- 接收者
                                  content TEXT NOT NULL,                    -- 消息内容
                                  type TINYINT NOT NULL DEFAULT 1,          -- 消息类型
-                                 status TINYINT NOT NULL DEFAULT 0,        -- 0=未推送 1=已推送 2=已撤回 4=用户已删除
+                                 status TINYINT NOT NULL DEFAULT 0,        -- 0=已推送 1=未推送 2=已撤回 4=用户已删除
                                  created_at BIGINT NOT NULL,               -- 消息时间戳
                                  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                  deleted_at DATETIME NULL,

@@ -8,4 +8,7 @@ const (
 	PlaylistSongTableName = "playlist_songs"
 	MessageTableName      = "messages"
 	SingerTableName       = "singer"
+
+	// Table Status
+	MessageUnPushedStatus = 1
 )
