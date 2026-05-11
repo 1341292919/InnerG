@@ -3,14 +3,15 @@ package db
 import (
 	"InnerG/config"
 	_interface "InnerG/dao/interface"
+	"strings"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 	"gorm.io/plugin/dbresolver"
-	"strings"
-	"time"
 )
 
 var (
@@ -63,10 +64,14 @@ func InitMySQL() {
 	}
 }
 
-func NewDBClient() _interface.UserDB {
+func NewUserDBClient() _interface.UserDB {
 	return NewUserDB(_db)
 }
 
 func NewMusicDBClient() _interface.MusicDB {
 	return NewMusicDB(_db)
+}
+
+func NewWebSocketDBClient() _interface.WebSocketDB {
+	return NewWebSocketDB(_db)
 }

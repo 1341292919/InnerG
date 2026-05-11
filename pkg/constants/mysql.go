@@ -6,5 +6,6 @@ const (
 	SongTableName         = "songs"
 	PlaylistTableName     = "playlist"
 	PlaylistSongTableName = "playlist_songs"
+	MessageTableName      = "messages"
 	SingerTableName       = "singer"
 )

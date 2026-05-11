@@ -100,3 +100,20 @@ CREATE TABLE InnerG.playlist_songs
     INDEX idx_playlist_id (playlist_id),
     INDEX idx_song_id (song_id)  -- 移除了多余的逗号
 ) AUTO_INCREMENT = 300000 COMMENT '歌单歌曲关联表';
+
+
+CREATE TABLE InnerG.messages (
+                                 id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                                 msg_id VARCHAR(64) NOT NULL,              -- 客户端生成的消息ID
+                                 from_user BIGINT NOT NULL,                -- 发送者
+                                 to_user BIGINT NOT NULL,                  -- 接收者
+                                 content TEXT NOT NULL,                    -- 消息内容
+                                 type TINYINT NOT NULL DEFAULT 1,          -- 消息类型
+                                 status TINYINT NOT NULL DEFAULT 0,        -- 0=未推送 1=已推送 2=已撤回 4=用户已删除
+                                 created_at BIGINT NOT NULL,               -- 消息时间戳
+                                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                 deleted_at DATETIME NULL,
+                                 INDEX idx_from_to (from_user, to_user),
+                                 INDEX idx_to_from (to_user, from_user),
+                                 INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

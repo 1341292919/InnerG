@@ -1,12 +1,17 @@
 package websocket
 
 import (
+	"InnerG/dao"
+	"InnerG/dao/db/model"
 	mq "InnerG/dao/rabbitmq"
 	"InnerG/pkg/constants"
 	"InnerG/pkg/logger"
+	"InnerG/service/websocket/message"
+	"context"
 	"fmt"
 	"sync"
 
+	"github.com/goccy/go-json"
 	"github.com/wagslane/go-rabbitmq"
 )
 
@@ -56,7 +61,27 @@ func OutlineMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
 	return rabbitmq.Ack
 }
 func StoreMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
-	fmt.Println("StoreMessageHandler:", string(d.Body))
+	var m *message.Message
+	err := json.Unmarshal(d.Body, m)
+	if err != nil {
+		logger.Log.Error("StoreMessageHandler: ", err)
+		return rabbitmq.Nack
+	}
+	dbM := &model.Message{
+		Content:   m.Content,
+		FromUser:  m.UserID,
+		ToUser:    m.TargetID,
+		MsgID:     m.ID,
+		Type:      m.Type,
+		CreatedAt: m.CreatedAt,
+		Status:    0,
+	}
+	websocketDao := dao.NewWebsocketDao(context.Background())
+	err = websocketDao.InsertMessage(context.Background(), dbM)
+	if err != nil {
+		logger.Log.Error("StoreMessageHandler: ", err)
+		return rabbitmq.Nack
+	}
 	return rabbitmq.Ack
 }
 
