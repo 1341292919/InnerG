@@ -61,11 +61,11 @@ func OutlineMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
 	return rabbitmq.Ack
 }
 func StoreMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
-	var m *message.Message
-	err := json.Unmarshal(d.Body, m)
+	var m message.Message
+	err := json.Unmarshal(d.Body, &m)
 	if err != nil {
 		logger.Log.Error("StoreMessageHandler: ", err)
-		return rabbitmq.Nack
+		return rabbitmq.NackRequeue
 	}
 	dbM := &model.Message{
 		Content:   m.Content,
@@ -77,10 +77,10 @@ func StoreMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
 		Status:    0,
 	}
 	websocketDao := dao.NewWebsocketDao(context.Background())
-	err = websocketDao.InsertMessage(context.Background(), dbM)
+	err = websocketDao.Db.InsertMessage(context.Background(), dbM)
 	if err != nil {
 		logger.Log.Error("StoreMessageHandler: ", err)
-		return rabbitmq.Nack
+		return rabbitmq.NackRequeue
 	}
 	return rabbitmq.Ack
 }

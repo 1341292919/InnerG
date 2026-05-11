@@ -6,8 +6,8 @@ import (
 	"InnerG/pkg/jwt"
 	"InnerG/service"
 	"InnerG/types"
+
 	"github.com/gin-gonic/gin"
-	"strconv"
 )
 
 func UserGetEmailCodeHandler() gin.HandlerFunc {
@@ -60,7 +60,7 @@ func UserLogin() gin.HandlerFunc {
 			pack.RespError(ctx, err)
 			return
 		}
-		access, refresh, err := jwt.CreateAllToken(strconv.FormatInt(int64(u.ID), 10))
+		access, refresh, err := jwt.CreateAllToken(int64(u.ID))
 		if err != nil {
 			pack.RespError(ctx, err)
 			return
@@ -83,7 +83,7 @@ func UserVerifyEmailAndLogin() gin.HandlerFunc {
 			pack.RespError(ctx, err)
 			return
 		}
-		access, refresh, err := jwt.CreateAllToken(strconv.FormatInt(int64(u.ID), 10))
+		access, refresh, err := jwt.CreateAllToken(int64(u.ID))
 		if err != nil {
 			pack.RespError(ctx, err)
 			return

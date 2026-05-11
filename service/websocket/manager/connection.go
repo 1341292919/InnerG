@@ -7,7 +7,7 @@ import (
 )
 
 type UserConnection struct {
-	UserID     string
+	UserID     int64
 	Conn       *websocket.Conn
 	LastActive time.Time
 	DeviceID   string // 多端登录

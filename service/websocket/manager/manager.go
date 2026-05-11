@@ -2,6 +2,7 @@ package manager
 
 import (
 	"InnerG/pkg/logger"
+	"strconv"
 	"sync"
 )
 
@@ -35,7 +36,7 @@ func (m *ConnectionManager) GetConnection(ID string) *UserConnection {
 func (m *ConnectionManager) AddConnection(connection *UserConnection) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.connections[connection.UserID] = connection
+	m.connections[m.WithConnectionId(connection.UserID)] = connection
 }
 
 func (m *ConnectionManager) RemoveConnection(ID string) {
@@ -48,4 +49,10 @@ func (m *ConnectionManager) RemoveConnection(ID string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	delete(m.connections, ID)
+}
+
+func (m *ConnectionManager) WithConnectionId(userId int64) string {
+	// 这里正常应该使用 userId + deviceId 做为 key
+	// 后续迭代处理
+	return strconv.FormatInt(userId, 10)
 }

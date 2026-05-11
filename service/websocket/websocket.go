@@ -48,7 +48,7 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 		LastActive: time.Now(),
 	}
 	ws.manager.AddConnection(&conn)
-	defer ws.manager.RemoveConnection(uid)
+	defer ws.manager.RemoveConnection(ws.manager.WithConnectionId(uid))
 	for {
 		t, body, err := connect.ReadMessage()
 		if err != nil { // 连接中断
@@ -84,8 +84,8 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 func (ws *WebSocketSrv) RouteMessage(m message.Message) error {
 	pushed := false
 	// 在线直接推送
-	if ws.manager.IsConnected(m.TargetID) {
-		c := ws.manager.GetConnection(m.TargetID)
+	if ws.manager.IsConnected(ws.manager.WithConnectionId(m.TargetID)) {
+		c := ws.manager.GetConnection(ws.manager.WithConnectionId(m.TargetID))
 		content, err := m.JsonContent()
 		if err != nil {
 			logger.Log.Error("RouteMessage:JsonContent: ", err)

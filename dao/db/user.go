@@ -7,6 +7,7 @@ import (
 	"InnerG/pkg/errno"
 	"context"
 	"errors"
+
 	"gorm.io/gorm"
 )
 
@@ -27,7 +28,7 @@ func (db *userDB) CreateNewUser(ctx context.Context, user *model.User) error {
 	return nil
 }
 
-func (db *userDB) IsUserExistById(ctx context.Context, id string) (*model.User, bool, error) {
+func (db *userDB) IsUserExistById(ctx context.Context, id int64) (*model.User, bool, error) {
 	var user *model.User
 	err := db.client.WithContext(ctx).Table(constants.UserTableName).Where("id = ?", id).First(&user).Error
 	if err != nil {
@@ -63,7 +64,7 @@ func (db *userDB) IsUserExistByAccount(ctx context.Context, account string) (*mo
 	return user, true, nil
 }
 
-func (db *userDB) UpdateUserAccount(ctx context.Context, account string, id string) error {
+func (db *userDB) UpdateUserAccount(ctx context.Context, account string, id int64) error {
 	if err := db.client.WithContext(ctx).
 		Table(constants.UserTableName).
 		Where("id = ?", id).
@@ -74,7 +75,7 @@ func (db *userDB) UpdateUserAccount(ctx context.Context, account string, id stri
 	return nil
 }
 
-func (db *userDB) UpdateUserName(ctx context.Context, userName string, id string) error {
+func (db *userDB) UpdateUserName(ctx context.Context, userName string, id int64) error {
 	if err := db.client.WithContext(ctx).
 		Table(constants.UserTableName).
 		Where("id = ?", id).
@@ -85,7 +86,7 @@ func (db *userDB) UpdateUserName(ctx context.Context, userName string, id string
 	return nil
 }
 
-func (db *userDB) UpdateUserGender(ctx context.Context, gender string, id string) error {
+func (db *userDB) UpdateUserGender(ctx context.Context, gender string, id int64) error {
 	if err := db.client.WithContext(ctx).
 		Table(constants.UserTableName).
 		Where("id = ?", id).

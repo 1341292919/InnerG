@@ -6,17 +6,18 @@ import (
 	"InnerG/pkg/errno"
 	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt/v4"
 	"time"
+
+	"github.com/golang-jwt/jwt/v4"
 )
 
 type Claims struct {
-	UserId string `json:"user_id"`
-	Type   int    `json:"type"`
+	UserId int64 `json:"user_id"`
+	Type   int   `json:"type"`
 	jwt.RegisteredClaims
 }
 
-func CreateAllToken(userid string) (string, string, error) {
+func CreateAllToken(userid int64) (string, string, error) {
 	accessToken, err := CreateToken(constants.TypeAccessToken, userid)
 	if err != nil {
 		return "", "", err
@@ -28,7 +29,7 @@ func CreateAllToken(userid string) (string, string, error) {
 	return accessToken, refreshToken, nil
 }
 
-func CreateToken(tokenType int, UserId string) (string, error) {
+func CreateToken(tokenType int, UserId int64) (string, error) {
 	if config.Service.PrivateKey == "" {
 		return "", errno.AuthError.WithMessage("config empty")
 	}
@@ -65,23 +66,23 @@ func CreateToken(tokenType int, UserId string) (string, error) {
 	return token, nil
 }
 
-func CheckToken(token string) (tokeType int, user_id string, err error) {
+func CheckToken(token string) (tokeType int, user_id int64, err error) {
 	if token == "" {
-		return -1, "", errno.AuthMissing
+		return -1, -1, errno.AuthMissing
 	}
 	tokenStruct, _, err := new(jwt.Parser).ParseUnverified(token, &Claims{})
 	if err != nil {
-		return -1, "", errno.AuthInvalid
+		return -1, -1, errno.AuthInvalid
 	}
 
 	unverifiedClaims, ok := tokenStruct.Claims.(*Claims)
 	if !ok {
-		return -1, "", errno.AuthError.WithMessage("cannot handle claims")
+		return -1, -1, errno.AuthError.WithMessage("cannot handle claims")
 	}
 
 	secret, err := jwt.ParseEdPublicKeyFromPEM([]byte(constants.PublicKey))
 	if err != nil {
-		return -1, "", errno.AuthError.WithMessage(fmt.Sprintf("parse public key failed, err: %v", err))
+		return -1, -1, errno.AuthError.WithMessage(fmt.Sprintf("parse public key failed, err: %v", err))
 	}
 
 	// 使用正确的密钥再次解析 token
@@ -93,14 +94,14 @@ func CheckToken(token string) (tokeType int, user_id string, err error) {
 	})
 	// 验证 token 是否有效
 	if err != nil {
-		return unverifiedClaims.Type, "", checkError(err, unverifiedClaims.Type)
+		return unverifiedClaims.Type, -1, checkError(err, unverifiedClaims.Type)
 	}
 
 	if _, ok := response.Claims.(*Claims); ok && response.Valid {
 		return unverifiedClaims.Type, unverifiedClaims.UserId, nil
 	}
 
-	return -1, "", errno.AuthInvalid
+	return -1, -1, errno.AuthInvalid
 
 }
 

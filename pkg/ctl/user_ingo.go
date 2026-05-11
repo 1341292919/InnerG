@@ -8,7 +8,7 @@ import (
 var Key = constants.ContextIdKey
 
 type UserInfo struct {
-	Id    string
+	Id    int64
 	Token string
 }
 

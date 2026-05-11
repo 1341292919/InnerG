@@ -14,14 +14,15 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/goccy/go-json"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/goccy/go-json"
 )
 
 var ContactSrvIns *ContactSrv
@@ -48,7 +49,7 @@ func (svc *ContactSrv) NewChatSession(ctx context.Context, req *types.NewChatSes
 	dbId, err := svc.sf.NextVal()
 	sessionId := strconv.FormatInt(dbId, 10)
 	err = dao.Mongo.NewChatSession(ctx, &MongoModel.ChatSession{
-		UserID:    u.Id,
+		UserID:    strconv.FormatInt(u.Id, 10),
 		SessionID: sessionId,
 		Model:     config.Api.Model,
 		Status:    constants.CommonHealthStatus,
@@ -74,9 +75,11 @@ func (svc *ContactSrv) StreamChat(ctx *gin.Context, req *types.StreamChatReq) er
 	if !exist {
 		return fmt.Errorf("session not exist")
 	}
-	u := ctl.GetUserInfo(ctx.Request.Context())
-	if u.Id != chatHistory.UserID {
-	}
+	// TODO : 权限校验
+	// u := ctl.GetUserInfo(ctx.Request.Context())
+	//if u.Id != chatHistory.UserID {
+	//
+	//}
 	// 添加会话上文
 	flusher, ok := ctx.Writer.(http.Flusher)
 	if !ok {
@@ -199,7 +202,7 @@ loop:
 func (svc *ContactSrv) GetUserSessionHistory(ctx context.Context, req *types.GetUserSessionListReq) ([]*types.Session, int, error) {
 	u := ctl.GetUserInfo(ctx)
 	dao := dao.NewContactDao(ctx)
-	sessionList, total, err := dao.Mongo.GetSessionByUserIdWithPagination(ctx, u.Id, req.PageNum, req.PageSize)
+	sessionList, total, err := dao.Mongo.GetSessionByUserIdWithPagination(ctx, strconv.FormatInt(u.Id, 10), req.PageNum, req.PageSize)
 	if err != nil {
 		logger.Log.Error("GetUserSessionHistory: ", errno.ConvertErr(err).Error())
 		return nil, -1, err
@@ -216,7 +219,7 @@ func (svc *ContactSrv) GetUserSessionDetail(ctx context.Context, req *types.GetU
 	if !exist {
 		return nil, fmt.Errorf("session not exist")
 	}
-	if u.Id != data.UserID {
+	if strconv.FormatInt(u.Id, 10) != data.UserID {
 		logger.Log.Info(u.Id, "tried to query session ", req.SessionId, " which is not belong to him")
 		return nil, fmt.Errorf("session not avaliable")
 	}
@@ -233,7 +236,7 @@ func (svc *ContactSrv) DeleteUserSession(ctx context.Context, sessionId string) 
 		return fmt.Errorf("session not exist")
 	}
 	u := ctl.GetUserInfo(ctx)
-	if u.Id != data.UserID {
+	if strconv.FormatInt(u.Id, 10) != data.UserID {
 		logger.Log.Info(u.Id, "tried to delete session ", sessionId, " which is not belong to him")
 		return fmt.Errorf("session not avaliable")
 	}

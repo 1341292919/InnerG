@@ -25,6 +25,7 @@ func NewConsumer(exchange string, queueName string, routingKey string) (*Consume
 		rabbitmq.WithConsumerOptionsExchangeKind("topic"),
 		rabbitmq.WithConsumerOptionsExchangeDurable,
 		rabbitmq.WithConsumerOptionsRoutingKey(routingKey), // 绑定多个路由键
+		rabbitmq.WithConsumerOptionsExchangeDeclare,        // 显式声明 Exchange
 	)
 
 	if err != nil {

@@ -157,7 +157,7 @@ func (s *UserSrv) UpdateUserAccount(ctx context.Context, account string) error {
 		return err
 	}
 	if exist {
-		if u.Id == strconv.FormatInt(int64(user.ID), 10) {
+		if u.Id == int64(user.ID) {
 			return fmt.Errorf("新账号与原账号相同，无需修改")
 		}
 		return fmt.Errorf("该账号已存在")
@@ -227,8 +227,8 @@ func (s *UserSrv) UpdateUserAvatar(ctx context.Context, file *multipart.FileHead
 		return "", fmt.Errorf("save file failed: %w", err)
 	}
 	filePath := filepath.Join(constants.StorePath, fileName)
-	url, err := oss.Upload(filePath, fileName, u.Id, constants.OssOrigin)
-	return url, userDao.Db.UpdateUserAvatar(ctx, u.Id, url)
+	url, err := oss.Upload(filePath, fileName, strconv.FormatInt(u.Id, 10), constants.OssOrigin)
+	return url, userDao.Db.UpdateUserAvatar(ctx, strconv.FormatInt(u.Id, 10), url)
 }
 func IsEmail(str string) bool {
 	return strings.Contains(str, "@")
