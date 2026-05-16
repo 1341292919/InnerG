@@ -34,7 +34,7 @@ func (db *webSocketDB) GetOfflineMessages(ctx context.Context, toUser int64, lim
 	var messages []*model.Message
 	err := db.client.WithContext(ctx).
 		Table(constants.MessageTableName).
-		Where("to_user = ? AND status = ?", toUser, 0).
+		Where("to_user = ? AND status = ?", toUser, 1).
 		Order("created_at ASC").
 		Limit(limit).
 		Find(&messages).Error
@@ -62,10 +62,10 @@ func (db *webSocketDB) GetMessagesAfterTimestamp(ctx context.Context, user1, use
 }
 
 // UpdateMessageStatus 更新消息状态
-func (db *webSocketDB) UpdateMessageStatus(ctx context.Context, msgID string, status int8) error {
+func (db *webSocketDB) UpdateMessageStatus(ctx context.Context, msgID int64, status int8) error {
 	err := db.client.WithContext(ctx).
 		Table(constants.MessageTableName).
-		Where("msg_id = ?", msgID).
+		Where("id = ?", msgID).
 		Update("status", status).Error
 	if err != nil {
 		return errno.NewErr(errno.MySQLDBErrorCode, "UpdateMessageStatus: "+err.Error())
@@ -74,10 +74,10 @@ func (db *webSocketDB) UpdateMessageStatus(ctx context.Context, msgID string, st
 }
 
 // BatchUpdateMessageStatus 批量更新消息状态（标记已推送）
-func (db *webSocketDB) BatchUpdateMessageStatus(ctx context.Context, msgIDs []string, status int8) error {
+func (db *webSocketDB) BatchUpdateMessageStatus(ctx context.Context, msgIDs []int64, status int8) error {
 	err := db.client.WithContext(ctx).
 		Table(constants.MessageTableName).
-		Where("msg_id IN ?", msgIDs).
+		Where("id IN ?", msgIDs).
 		Update("status", status).Error
 	if err != nil {
 		return errno.NewErr(errno.MySQLDBErrorCode, "BatchUpdateMessageStatus: "+err.Error())

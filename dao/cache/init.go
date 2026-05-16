@@ -4,6 +4,7 @@ import (
 	"InnerG/config"
 	_interface "InnerG/dao/interface"
 	"context"
+
 	"github.com/redis/go-redis/v9"
 )
 
@@ -24,8 +25,12 @@ func InitCache() {
 	_Ca = client
 }
 
-func NewRedisClient() _interface.UserCache {
+func NewUserRedisClient() _interface.UserCache {
 	return NewUserCache(_Ca)
 }
 
-func NewMusicClient() _interface.MusicCache { return NewMusicCache(_Ca) }
+func NewMusicRedisClient() _interface.MusicCache { return NewMusicCache(_Ca) }
+
+func NewWebsocketRedisClient() _interface.WebSocketCache {
+	return NewWebsocketCache(_Ca)
+}

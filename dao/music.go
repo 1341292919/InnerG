@@ -15,6 +15,6 @@ type MusicDao struct {
 func NewMusicDao(ctx context.Context) *MusicDao {
 	return &MusicDao{
 		Db: db.NewMusicDBClient(),
-		Ca: cache.NewMusicClient(),
+		Ca: cache.NewMusicRedisClient(),
 	}
 }

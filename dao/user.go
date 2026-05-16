@@ -15,6 +15,6 @@ type UserDao struct {
 func NewUserDao(ctx context.Context) *UserDao {
 	return &UserDao{
 		Db:    db.NewUserDBClient(),
-		Cache: cache.NewRedisClient(),
+		Cache: cache.NewUserRedisClient(),
 	}
 }

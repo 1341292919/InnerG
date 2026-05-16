@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"InnerG/dao"
 	"InnerG/dao/rabbitmq"
 	"InnerG/pkg/constants"
 	"InnerG/pkg/ctl"
@@ -49,6 +50,33 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 	}
 	ws.manager.AddConnection(&conn)
 	defer ws.manager.RemoveConnection(ws.manager.WithConnectionId(uid))
+
+	// 推送一次消息
+	websocketDao := dao.NewWebsocketDao()
+	mList, err := websocketDao.Db.GetOfflineMessages(ctx, uid, constants.OnceOffMessagePushNum)
+	if err != nil {
+		logger.Log.Error("GetOfflineMessages: ", err)
+		return
+	}
+	// 一次性推送整个消息数组
+	if len(mList) > 0 {
+		err = connect.WriteJSON(mList)
+		if err != nil {
+			logger.Log.Error("Failed to push offline messages: ", err)
+			return
+		}
+		ids := make([]int64, len(mList))
+		for i := range mList {
+			ids[i] = mList[i].ID
+		}
+		// 更新状态
+		err = websocketDao.Db.BatchUpdateMessageStatus(ctx, ids, constants.MessagePushedStatus)
+		if err != nil {
+			logger.Log.Error("Failed to push offline messages: ", err)
+			return
+		}
+	}
+
 	for {
 		t, body, err := connect.ReadMessage()
 		if err != nil { // 连接中断

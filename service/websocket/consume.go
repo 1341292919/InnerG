@@ -48,7 +48,7 @@ func NewWebsocketConsume() *WebsocketConsume {
 				constants.StoreMessageTopic)
 		}
 		TaskMapping = map[string]mq.Handler{
-			constants.OfflineConsumeQueueTopic: OutlineMessageHandler,
+			constants.OfflineConsumeQueueTopic: OfflineMessageHandler,
 			constants.StoreConsumeQueueTopic:   StoreMessageHandler,
 		}
 	})
@@ -56,8 +56,19 @@ func NewWebsocketConsume() *WebsocketConsume {
 }
 
 // 执行函数
-func OutlineMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
-	fmt.Println("OutlineMessageHandler:", string(d.Body))
+func OfflineMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
+	var m message.Message
+	err := json.Unmarshal(d.Body, &m)
+	if err != nil {
+		logger.Log.Error("OfflineMessageHandler: ", err)
+		return rabbitmq.NackRequeue
+	}
+	websocketDao := dao.NewWebsocketDao()
+	err = websocketDao.Cache.AddOfflineMessage(context.Background(), fmt.Sprintf("offlineM:%d", m.TargetID), &m)
+	if err != nil {
+		logger.Log.Error("OfflineMessageHandler: ", err)
+		return rabbitmq.NackRequeue
+	}
 	return rabbitmq.Ack
 }
 func StoreMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
@@ -76,7 +87,7 @@ func StoreMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
 		CreatedAt: m.CreatedAt,
 		Status:    m.Status,
 	}
-	websocketDao := dao.NewWebsocketDao(context.Background())
+	websocketDao := dao.NewWebsocketDao()
 	err = websocketDao.Db.InsertMessage(context.Background(), dbM)
 	if err != nil {
 		logger.Log.Error("StoreMessageHandler: ", err)

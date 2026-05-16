@@ -1,17 +1,19 @@
 package dao
 
 import (
+	"InnerG/dao/cache"
 	"InnerG/dao/db"
 	_interface "InnerG/dao/interface"
-	"context"
 )
 
 type WebsocketDao struct {
-	Db _interface.WebSocketDB
+	Db    _interface.WebSocketDB
+	Cache _interface.WebSocketCache
 }
 
-func NewWebsocketDao(ctx context.Context) *WebsocketDao {
+func NewWebsocketDao() *WebsocketDao {
 	return &WebsocketDao{
-		Db: db.NewWebSocketDBClient(),
+		Db:    db.NewWebSocketDBClient(),
+		Cache: cache.NewWebsocketRedisClient(),
 	}
 }
