@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" font-family="'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8f9fa"/>
+      <stop offset="100%" stop-color="#e9ecef"/>
+    </linearGradient>
+    <linearGradient id="gClient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4a90d9"/>
+      <stop offset="100%" stop-color="#357abd"/>
+    </linearGradient>
+    <linearGradient id="gMiddleware" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#50b86c"/>
+      <stop offset="100%" stop-color="#3a9d56"/>
+    </linearGradient>
+    <linearGradient id="gHandler" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e8913a"/>
+      <stop offset="100%" stop-color="#d4802e"/>
+    </linearGradient>
+    <linearGradient id="gService" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#9b59b6"/>
+      <stop offset="100%" stop-color="#8e44ad"/>
+    </linearGradient>
+    <linearGradient id="gDAO" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e74c3c"/>
+      <stop offset="100%" stop-color="#c0392b"/>
+    </linearGradient>
+    <linearGradient id="gStore" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1abc9c"/>
+      <stop offset="100%" stop-color="#16a085"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000020"/>
+    </filter>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="4" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#7f8c8d"/>
+    </marker>
+  </defs>
+
+  <rect width="800" height="520" fill="url(#bg)" rx="6"/>
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#2d3436">InnerG Server — 架构简图</text>
+
+  <!-- ============ L1: Client ============ -->
+  <rect x="300" y="48" width="200" height="34" rx="17" fill="url(#gClient)" filter="url(#shadow)"/>
+  <text x="400" y="69" text-anchor="middle" font-size="12" font-weight="bold" fill="#fff">客户端</text>
+
+  <line x1="400" y1="82" x2="400" y2="100" stroke="#7f8c8d" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============ L2: Middleware ============ -->
+  <rect x="50" y="104" width="700" height="40" rx="6" fill="#fff" stroke="#b2bec3" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="400" y="114" text-anchor="middle" font-size="10" font-weight="bold" fill="#50b86c">▸ 中间件 (middleware/)</text>
+  <!-- sub items -->
+  <rect x="70" y="120" width="120" height="18" rx="9" fill="#dfe6e9"/>
+  <text x="130" y="133" text-anchor="middle" font-size="9" fill="#636e72">Recovery</text>
+  <rect x="200" y="120" width="140" height="18" rx="9" fill="#dfe6e9"/>
+  <text x="270" y="133" text-anchor="middle" font-size="9" fill="#636e72">GinLogger</text>
+  <rect x="350" y="120" width="120" height="18" rx="9" fill="#dfe6e9"/>
+  <text x="410" y="133" text-anchor="middle" font-size="9" fill="#636e72">QPS 计数</text>
+  <rect x="480" y="120" width="250" height="18" rx="9" fill="#dfe6e9"/>
+  <text x="605" y="133" text-anchor="middle" font-size="9" fill="#636e72">JWT 鉴权 (EdDSA) + Token 续期</text>
+
+  <line x1="400" y1="144" x2="400" y2="162" stroke="#7f8c8d" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============ L3: Handler ============ -->
+  <rect x="50" y="166" width="700" height="40" rx="6" fill="#fff" stroke="#b2bec3" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="400" y="176" text-anchor="middle" font-size="10" font-weight="bold" fill="#e8913a">▸ HTTP Handler (api/v1/)</text>
+  <rect x="70" y="182" width="150" height="18" rx="4" fill="url(#gHandler)" opacity="0.85"/>
+  <text x="145" y="195" text-anchor="middle" font-size="9" fill="#fff">user.go</text>
+  <rect x="230" y="182" width="150" height="18" rx="4" fill="url(#gHandler)" opacity="0.85"/>
+  <text x="305" y="195" text-anchor="middle" font-size="9" fill="#fff">music.go</text>
+  <rect x="390" y="182" width="150" height="18" rx="4" fill="url(#gHandler)" opacity="0.85"/>
+  <text x="465" y="195" text-anchor="middle" font-size="9" fill="#fff">contact.go</text>
+  <rect x="550" y="182" width="180" height="18" rx="4" fill="url(#gHandler)" opacity="0.85"/>
+  <text x="640" y="195" text-anchor="middle" font-size="9" fill="#fff">websocket.go</text>
+
+  <line x1="400" y1="206" x2="400" y2="224" stroke="#7f8c8d" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============ L4: Service ============ -->
+  <rect x="50" y="228" width="700" height="40" rx="6" fill="#fff" stroke="#b2bec3" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="400" y="238" text-anchor="middle" font-size="10" font-weight="bold" fill="#9b59b6">▸ 业务服务 (service/)</text>
+  <rect x="70" y="244" width="150" height="18" rx="4" fill="url(#gService)" opacity="0.85"/>
+  <text x="145" y="257" text-anchor="middle" font-size="9" fill="#fff">用户系统</text>
+  <rect x="230" y="244" width="150" height="18" rx="4" fill="url(#gService)" opacity="0.85"/>
+  <text x="305" y="257" text-anchor="middle" font-size="9" fill="#fff">音乐服务</text>
+  <rect x="390" y="244" width="150" height="18" rx="4" fill="url(#gService)" opacity="0.85"/>
+  <text x="465" y="257" text-anchor="middle" font-size="9" fill="#fff">AI 咨询 (SSE)</text>
+  <rect x="550" y="244" width="180" height="18" rx="4" fill="url(#gService)" opacity="0.85"/>
+  <text x="640" y="257" text-anchor="middle" font-size="9" fill="#fff">即时通讯 (WS)</text>
+
+  <line x1="145" y1="268" x2="145" y2="290" stroke="#7f8c8d" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="305" y1="268" x2="305" y2="290" stroke="#7f8c8d" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="465" y1="268" x2="465" y2="290" stroke="#7f8c8d" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="640" y1="268" x2="640" y2="290" stroke="#7f8c8d" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- ============ L5: DAO ============ -->
+  <rect x="50" y="294" width="700" height="40" rx="6" fill="#fff" stroke="#b2bec3" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="400" y="304" text-anchor="middle" font-size="10" font-weight="bold" fill="#e74c3c">▸ 数据访问 (dao/)</text>
+  <rect x="70" y="310" width="150" height="18" rx="4" fill="url(#gDAO)" opacity="0.8"/>
+  <text x="145" y="323" text-anchor="middle" font-size="9" fill="#fff">UserDao</text>
+  <rect x="230" y="310" width="150" height="18" rx="4" fill="url(#gDAO)" opacity="0.8"/>
+  <text x="305" y="323" text-anchor="middle" font-size="9" fill="#fff">MusicDao</text>
+  <rect x="390" y="310" width="150" height="18" rx="4" fill="url(#gDAO)" opacity="0.8"/>
+  <text x="465" y="323" text-anchor="middle" font-size="9" fill="#fff">ContactDao</text>
+  <rect x="550" y="310" width="180" height="18" rx="4" fill="url(#gDAO)" opacity="0.8"/>
+  <text x="640" y="323" text-anchor="middle" font-size="9" fill="#fff">WebSocketDao</text>
+
+  <line x1="145" y1="334" x2="145" y2="356" stroke="#7f8c8d" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="305" y1="334" x2="305" y2="356" stroke="#7f8c8d" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="465" y1="334" x2="465" y2="356" stroke="#7f8c8d" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="640" y1="334" x2="640" y2="356" stroke="#7f8c8d" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- ============ L6: Data Stores ============ -->
+  <rect x="50" y="360" width="700" height="70" rx="6" fill="#fff" stroke="#b2bec3" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="400" y="372" text-anchor="middle" font-size="10" font-weight="bold" fill="#1abc9c">▸ 数据存储</text>
+
+  <rect x="70" y="378" width="145" height="44" rx="5" fill="#e8f8f5" stroke="#1abc9c" stroke-width="1.2"/>
+  <text x="142" y="396" text-anchor="middle" font-size="10" font-weight="bold" fill="#16a085">MySQL (GORM)</text>
+  <text x="142" y="412" text-anchor="middle" font-size="9" fill="#636e72">用户·歌曲·消息</text>
+
+  <rect x="228" y="378" width="145" height="44" rx="5" fill="#e8f8f5" stroke="#1abc9c" stroke-width="1.2"/>
+  <text x="300" y="396" text-anchor="middle" font-size="10" font-weight="bold" fill="#16a085">Redis</text>
+  <text x="300" y="412" text-anchor="middle" font-size="9" fill="#636e72">缓存·黑名单·QPS</text>
+
+  <rect x="386" y="378" width="145" height="44" rx="5" fill="#e8f8f5" stroke="#1abc9c" stroke-width="1.2"/>
+  <text x="458" y="396" text-anchor="middle" font-size="10" font-weight="bold" fill="#16a085">MongoDB</text>
+  <text x="458" y="412" text-anchor="middle" font-size="9" fill="#636e72">会话·消息历史</text>
+
+  <rect x="544" y="378" width="186" height="44" rx="5" fill="#e8f8f5" stroke="#1abc9c" stroke-width="1.2"/>
+  <text x="637" y="396" text-anchor="middle" font-size="10" font-weight="bold" fill="#16a085">RabbitMQ</text>
+  <text x="637" y="412" text-anchor="middle" font-size="9" fill="#636e72">离线推送·消息持久化</text>
+
+  <!-- ============ Side: External ============ -->
+  <text x="70" y="462" font-size="10" font-weight="bold" fill="#636e72">外部集成</text>
+  <rect x="70" y="468" width="90" height="22" rx="4" fill="#ffeaa7" stroke="#fdcb6e" stroke-width="1"/>
+  <text x="115" y="483" text-anchor="middle" font-size="9" fill="#e17055">Deepseek API</text>
+
+  <rect x="172" y="468" width="90" height="22" rx="4" fill="#ffeaa7" stroke="#fdcb6e" stroke-width="1"/>
+  <text x="217" y="483" text-anchor="middle" font-size="9" fill="#e17055">QiNiu OSS</text>
+
+  <rect x="274" y="468" width="90" height="22" rx="4" fill="#ffeaa7" stroke="#fdcb6e" stroke-width="1"/>
+  <text x="319" y="483" text-anchor="middle" font-size="9" fill="#e17055">SMTP 邮件</text>
+
+  <!-- monitoring -->
+  <text x="430" y="462" font-size="10" font-weight="bold" fill="#636e72">监控与基础设施</text>
+  <rect x="430" y="468" width="90" height="22" rx="4" fill="#dfe6e9"/>
+  <text x="475" y="483" text-anchor="middle" font-size="9" fill="#636e72">Prometheus</text>
+
+  <rect x="532" y="468" width="90" height="22" rx="4" fill="#dfe6e9"/>
+  <text x="577" y="483" text-anchor="middle" font-size="9" fill="#636e72">Grafana</text>
+
+  <rect x="634" y="468" width="96" height="22" rx="4" fill="#dfe6e9"/>
+  <text x="682" y="483" text-anchor="middle" font-size="9" fill="#636e72">Snowflake ID</text>
+
+  <!-- Legend -->
+  <text x="70" y="508" font-size="9" fill="#636e72">请求链路：客户端 → 中间件 → Handler → Service → DAO → 数据存储</text>
+</svg>
