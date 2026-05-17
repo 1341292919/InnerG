@@ -1,7 +1,11 @@
 package v1
 
 import (
+	"InnerG/pack"
+	"InnerG/pkg/ctl"
+	"InnerG/pkg/errno"
 	service "InnerG/service/websocket"
+	"InnerG/types"
 	"log"
 	"time"
 
@@ -47,5 +51,39 @@ func WebSocketConnectionHandler() gin.HandlerFunc {
 		}()
 		l := service.NewWebSocketSrv()
 		l.NewConnection(c.Request.Context(), conn)
+	}
+}
+
+func GetWebSocketMessages() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var req types.GetMessagesReq
+		if err := ctx.ShouldBind(&req); err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
+			return
+		}
+		uid := ctl.GetUserInfo(ctx.Request.Context()).Id
+		srv := service.NewWebSocketSrv()
+		msgs, err := srv.GetMessagesAfterTimestamp(ctx.Request.Context(), uid, req.TargetID, req.After)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.RespData(ctx, types.GetMessagesResp{Messages: pack.BuildMessageList(msgs)})
+	}
+}
+
+func GetWebSocketUnread() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		uid := ctl.GetUserInfo(ctx.Request.Context()).Id
+		srv := service.NewWebSocketSrv()
+		msgs, err := srv.GetUnreadMessages(ctx.Request.Context(), uid)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.RespData(ctx, types.GetUnreadResp{
+			Messages: pack.BuildMessageList(msgs),
+			Total:    len(msgs),
+		})
 	}
 }

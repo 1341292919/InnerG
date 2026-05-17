@@ -54,6 +54,8 @@ func NewRouter() *gin.Engine {
 
 			// 社交聊天
 			authed.GET("ws/connection", api.WebSocketConnectionHandler())
+			authed.GET("ws/messages", api.GetWebSocketMessages())
+			authed.GET("ws/unread", api.GetWebSocketUnread())
 		}
 	}
 	return r
