@@ -28,6 +28,7 @@ func NewRouter() *gin.Engine {
 		v1.POST("user/register", api.UserVerifyEmailAndRegister())
 		v1.POST("user/login", api.UserLogin())
 		v1.POST("user/email/login", api.UserVerifyEmailAndLogin())
+		v1.GET("user/refresh-token", api.UserRefreshToken())
 		authed := v1.Group("/") // 需要登陆保护
 		authed.Use(jwt.Auth())
 		{

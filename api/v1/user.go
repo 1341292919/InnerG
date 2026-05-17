@@ -2,6 +2,7 @@ package v1
 
 import (
 	"InnerG/pack"
+	"InnerG/pkg/constants"
 	"InnerG/pkg/errno"
 	"InnerG/pkg/jwt"
 	"InnerG/service"
@@ -182,5 +183,28 @@ func UserUploadAvatar() gin.HandlerFunc {
 			return
 		}
 		pack.RespData(ctx, types.UpdateUserAvatarResp{AvatarUrl: url})
+	}
+}
+
+// 刷新token
+func UserRefreshToken() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		token := ctx.GetHeader(constants.AuthHeader)
+		tokenType, uid, err := jwt.CheckToken(token)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		if tokenType != constants.TypeRefreshToken {
+			pack.RespError(ctx, errno.AuthInvalid.WithMessage("token type is not refresh token"))
+			return
+		}
+		access, refresh, err := jwt.CreateAllToken(uid)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.WithToken(ctx, access, refresh)
+		pack.RespSuccess(ctx)
 	}
 }
