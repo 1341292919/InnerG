@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"InnerG/config"
 	"InnerG/dao"
 	"InnerG/dao/rabbitmq"
 	"InnerG/pkg/constants"
@@ -33,7 +34,7 @@ func NewWebSocketSrv() *WebSocketSrv {
 			panic(fmt.Errorf("Init WebSocketService : ", err.Error()))
 		}
 		WebSocketSrvIns = &WebSocketSrv{
-			manager: manager.NewConnectionManager(),
+			manager: manager.NewConnectionManager(config.Service.WebsocketShardNum),
 			sender:  producer,
 		}
 	})
@@ -42,25 +43,20 @@ func NewWebSocketSrv() *WebSocketSrv {
 
 func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Conn) {
 	uid := ctl.GetUserInfo(ctx).Id
-	// 注册该连接
 	conn := manager.UserConnection{
 		UserID:     uid,
 		Conn:       connect,
 		LastActive: time.Now(),
 	}
-	ws.manager.AddConnection(&conn)
-	defer ws.manager.RemoveConnection(ws.manager.WithConnectionId(uid))
 
-	// 推送一次消息
+	// 先推送离线消息，再注册连接，确保消息顺序：离线 → 实时
 	websocketDao := dao.NewWebsocketDao()
 	mList, err := websocketDao.Db.GetOfflineMessages(ctx, uid, constants.OnceOffMessagePushNum)
 	if err != nil {
 		logger.Log.Error("GetOfflineMessages: ", err)
-		return
 	}
-	// 一次性推送整个消息数组
 	if len(mList) > 0 {
-		err = connect.WriteJSON(mList)
+		err = conn.WriteJSONData(mList)
 		if err != nil {
 			logger.Log.Error("Failed to push offline messages: ", err)
 			return
@@ -69,13 +65,16 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 		for i := range mList {
 			ids[i] = mList[i].ID
 		}
-		// 更新状态
 		err = websocketDao.Db.BatchUpdateMessageStatus(ctx, ids, constants.MessagePushedStatus)
 		if err != nil {
 			logger.Log.Error("Failed to push offline messages: ", err)
 			return
 		}
 	}
+
+	// 离线消息推完后再注册，后续 RouteMessage 推送的实时消息都排在后面
+	ws.manager.AddConnection(&conn)
+	defer ws.manager.RemoveConnection(&conn)
 
 	for {
 		t, body, err := connect.ReadMessage()
@@ -119,7 +118,7 @@ func (ws *WebSocketSrv) RouteMessage(m message.Message) error {
 			logger.Log.Error("RouteMessage:JsonContent: ", err)
 			return err
 		}
-		err = c.Conn.WriteMessage(websocket.TextMessage, content)
+		err = c.WriteData(content)
 		if err != nil {
 			logger.Log.Error("RouteMessage:WriteMessage: ", err)
 			return err

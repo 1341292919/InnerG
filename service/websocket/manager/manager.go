@@ -1,58 +1,72 @@
 package manager
 
 import (
-	"InnerG/pkg/logger"
+	"hash/fnv"
 	"strconv"
 	"sync"
 )
 
-type ConnectionManager struct {
-	connections map[string]*UserConnection // 这里正常应该使用 userId + deviceId 做为 key
+type connShard struct {
 	mu          sync.RWMutex
+	connections map[string]*UserConnection
 }
 
-func NewConnectionManager() *ConnectionManager {
-	return &ConnectionManager{
-		connections: make(map[string]*UserConnection),
-		mu:          sync.RWMutex{},
+type ConnectionManager struct {
+	shards []*connShard
+}
+
+func NewConnectionManager(shardNum int) *ConnectionManager {
+	shards := make([]*connShard, shardNum)
+	for i := range shards {
+		shards[i] = &connShard{
+			connections: make(map[string]*UserConnection),
+		}
 	}
+	return &ConnectionManager{shards: shards}
+}
+
+func (m *ConnectionManager) getShard(id string) *connShard {
+	h := fnv.New32a()
+	h.Write([]byte(id))
+	return m.shards[h.Sum32()%uint32(len(m.shards))]
 }
 
 func (m *ConnectionManager) IsConnected(ID string) bool {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if _, ok := m.connections[ID]; ok {
-		return true
-	}
-	return false
+	s := m.getShard(ID)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	_, ok := s.connections[ID]
+	return ok
 }
 
 func (m *ConnectionManager) GetConnection(ID string) *UserConnection {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.connections[ID]
+	s := m.getShard(ID)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.connections[ID]
 }
 
 func (m *ConnectionManager) AddConnection(connection *UserConnection) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.connections[m.WithConnectionId(connection.UserID)] = connection
+	id := m.WithConnectionId(connection.UserID)
+	s := m.getShard(id)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if old, ok := s.connections[id]; ok {
+		old.Conn.Close()
+	}
+	s.connections[id] = connection
 }
 
-func (m *ConnectionManager) RemoveConnection(ID string) {
-	m.mu.RLock()
-	if _, ok := m.connections[ID]; !ok {
-		logger.Log.Error("RemoveConnection: connection not exist")
-		m.mu.Unlock()
+func (m *ConnectionManager) RemoveConnection(connection *UserConnection) {
+	id := m.WithConnectionId(connection.UserID)
+	s := m.getShard(id)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if current, ok := s.connections[id]; ok && current == connection {
+		delete(s.connections, id)
 	}
-	m.mu.RUnlock()
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	delete(m.connections, ID)
 }
 
 func (m *ConnectionManager) WithConnectionId(userId int64) string {
-	// 这里正常应该使用 userId + deviceId 做为 key
-	// 后续迭代处理
 	return strconv.FormatInt(userId, 10)
 }

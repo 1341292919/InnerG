@@ -44,8 +44,9 @@ type smtp struct {
 }
 
 type service struct {
-	Address    string `mapstructure:"address"`
-	PrivateKey string `mapstructure:"private-key"`
+	Address           string `mapstructure:"address"`
+	PrivateKey        string `mapstructure:"private-key"`
+	WebsocketShardNum int    `mapstructure:"websocket-shard-num"`
 }
 
 type api struct {

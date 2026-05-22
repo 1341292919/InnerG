@@ -29,6 +29,9 @@ func WebSocketConnectionHandler() gin.HandlerFunc {
 
 		log.Println("客户端连接成功")
 
+		// 消息体大小限制 64KB，超限自动断开
+		conn.SetReadLimit(64 * 1024)
+
 		// 设置心跳超时时间：30秒内没收到客户端消息就关闭连接
 		conn.SetReadDeadline(time.Now().Add(30 * time.Second))
 		// 心跳重置函数，每次收到客户端消息就刷新超时时间
@@ -42,8 +45,7 @@ func WebSocketConnectionHandler() gin.HandlerFunc {
 			ticker := time.NewTicker(10 * time.Second)
 			defer ticker.Stop()
 			for range ticker.C {
-				// 发送ping消息（心跳包）
-				if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				if err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(10*time.Second)); err != nil {
 					log.Printf("发送心跳失败: %v", err)
 					return
 				}

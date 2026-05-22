@@ -36,16 +36,24 @@ func NewWebsocketConsume() *WebsocketConsume {
 				WsConsume.storeConsumeNum,
 		)
 		for i := 0; i < WsConsume.offlineConsumeNum; i++ {
-			WsConsume.consumerList[i], _ = mq.NewConsumer(
+			c, err := mq.NewConsumer(
 				constants.WebsocketService,
 				constants.OfflineConsumeQueueTopic,
 				constants.OfflineMessageTopic)
+			if err != nil {
+				panic(fmt.Errorf("Init WebsocketConsume offline[%d]: %w", i, err))
+			}
+			WsConsume.consumerList[i] = c
 		}
 		for i := WsConsume.offlineConsumeNum; i < WsConsume.offlineConsumeNum+WsConsume.storeConsumeNum; i++ {
-			WsConsume.consumerList[i], _ = mq.NewConsumer(
+			c, err := mq.NewConsumer(
 				constants.WebsocketService,
 				constants.StoreConsumeQueueTopic,
 				constants.StoreMessageTopic)
+			if err != nil {
+				panic(fmt.Errorf("Init WebsocketConsume store[%d]: %w", i, err))
+			}
+			WsConsume.consumerList[i] = c
 		}
 		TaskMapping = map[string]mq.Handler{
 			constants.OfflineConsumeQueueTopic: OfflineMessageHandler,
