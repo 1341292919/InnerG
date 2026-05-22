@@ -8,7 +8,7 @@ const (
 	ONE_HOUR         = time.Hour
 	ONE_DAY          = 24 * time.Hour
 	ONE_WEEK         = 7 * ONE_DAY
-	ONE_MONTH        = 7 * ONE_DAY
+	ONE_MONTH        = 30 * ONE_DAY
 	cnTimeZoneOffset = 8 * 3600
 )
 

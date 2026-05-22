@@ -34,7 +34,7 @@ func (db *webSocketDB) GetOfflineMessages(ctx context.Context, toUser int64, lim
 	var messages []*model.Message
 	err := db.client.WithContext(ctx).
 		Table(constants.MessageTableName).
-		Where("to_user = ? AND status = ?", toUser, 1).
+		Where("to_user = ? AND status = ?", toUser, constants.MessageUnPushedStatus).
 		Order("created_at ASC").
 		Limit(limit).
 		Find(&messages).Error
@@ -51,7 +51,7 @@ func (db *webSocketDB) GetMessagesAfterTimestamp(ctx context.Context, user1, use
 		Table(constants.MessageTableName).
 		Where(
 			"((from_user = ? AND to_user = ?) OR (from_user = ? AND to_user = ?)) AND created_at > ? AND status NOT IN ?",
-			user1, user2, user2, user1, timestamp, []int8{2, 4},
+			user1, user2, user2, user1, timestamp, []int8{constants.MessageRecalledStatus, constants.MessageDeletedStatus},
 		).
 		Order("created_at ASC").
 		Find(&messages).Error

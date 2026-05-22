@@ -1,11 +1,5 @@
 package constants
 
-// utils
-const (
-	ApiRequestWay = "POST"
-)
-
-// service
 const (
 	CommonUserRole   = "user"
 	CommonBotRole    = "assistant"

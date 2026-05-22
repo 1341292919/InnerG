@@ -29,14 +29,14 @@ func (db *musicDB) GetPlaylistList(ctx context.Context, pageNum, pageSize int) (
 		pageSize = 10
 	}
 	var total int64
-	err := db.client.WithContext(ctx).Table(constants.PlaylistTableName).Where("status <> ?", 2).Count(&total).Error
+	err := db.client.WithContext(ctx).Table(constants.PlaylistTableName).Where("status <> ?", constants.PlaylistStatusDeleted).Count(&total).Error
 	if err != nil {
 		return nil, -1, errno.NewErr(errno.MySQLDBErrorCode, "GetPlaylistList Count: "+err.Error())
 	}
 	list := make([]*model.Playlist, 0)
 	err = db.client.WithContext(ctx).
 		Table(constants.PlaylistTableName).
-		Where("status <> ?", 2).
+		Where("status <> ?", constants.PlaylistStatusDeleted).
 		Order("updated_at DESC").
 		Limit(pageSize).
 		Offset((pageNum - 1) * pageSize).
@@ -49,7 +49,7 @@ func (db *musicDB) GetPlaylistList(ctx context.Context, pageNum, pageSize int) (
 
 func (db *musicDB) GetRecommendPlayList(ctx context.Context, pageSize int) ([]*model.Playlist, int, error) {
 	var total int64
-	err := db.client.WithContext(ctx).Table(constants.PlaylistTableName).Where("status <> ?", 2).Count(&total).Error
+	err := db.client.WithContext(ctx).Table(constants.PlaylistTableName).Where("status <> ?", constants.PlaylistStatusDeleted).Count(&total).Error
 	if err != nil {
 		return nil, -1, errno.NewErr(errno.MySQLDBErrorCode, "GetRecommendPlayList Count: "+err.Error())
 	}
@@ -57,7 +57,7 @@ func (db *musicDB) GetRecommendPlayList(ctx context.Context, pageSize int) ([]*m
 		pageSize = 10
 	}
 	var allIDs []string
-	err = db.client.WithContext(ctx).Table(constants.PlaylistTableName).Where("status <> ?", 2).Pluck("id", &allIDs).Error
+	err = db.client.WithContext(ctx).Table(constants.PlaylistTableName).Where("status <> ?", constants.PlaylistStatusDeleted).Pluck("id", &allIDs).Error
 	if err != nil {
 		return nil, -1, errno.NewErr(errno.MySQLDBErrorCode, "GetRecommendPlayList Pluck: "+err.Error())
 	}
@@ -119,14 +119,14 @@ func (db *musicDB) GetSongList(ctx context.Context, pageNum, pageSize int) ([]*m
 		pageSize = 10
 	}
 	var total int64
-	err := db.client.WithContext(ctx).Table(constants.SongTableName).Where("status <> ?", 2).Count(&total).Error
+	err := db.client.WithContext(ctx).Table(constants.SongTableName).Where("status <> ?", constants.SongStatusReviewing).Count(&total).Error
 	if err != nil {
 		return nil, -1, errno.NewErr(errno.MySQLDBErrorCode, "GetSongList Count: "+err.Error())
 	}
 	list := make([]*model.Song, 0)
 	err = db.client.WithContext(ctx).
 		Table(constants.SongTableName).
-		Where("status <> ?", 2).
+		Where("status <> ?", constants.SongStatusReviewing).
 		Order("RAND()").
 		Limit(pageSize).
 		Find(&list).Error

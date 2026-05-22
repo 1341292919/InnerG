@@ -35,7 +35,7 @@ func (m *contactMongoDB) IsQuerySessionExist(ctx context.Context, sessionId stri
 	filter := bson.M{
 		"sessionId": sessionId,
 		"status": bson.M{
-			"$nin": []interface{}{"0", 0},
+			"$nin": []interface{}{constants.CommonDeletedStatus, 0},
 		},
 	}
 	var session model.ChatSession
@@ -73,7 +73,7 @@ func (m *contactMongoDB) GetSessionByUserId(ctx context.Context, userId string) 
 	filter := bson.M{
 		"userId": userId,
 		"status": bson.M{
-			"$nin": []interface{}{"0", 0},
+			"$nin": []interface{}{constants.CommonDeletedStatus, 0},
 		},
 	}
 	var sessionList []*model.ChatSession
@@ -123,7 +123,7 @@ func (m *contactMongoDB) GetSessionByUserIdWithPagination(ctx context.Context, u
 	filter := bson.M{
 		"userId": userId,
 		"status": bson.M{
-			"$nin": []interface{}{"0", 0},
+			"$nin": []interface{}{constants.CommonDeletedStatus, 0},
 		},
 	}
 
