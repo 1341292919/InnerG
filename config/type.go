@@ -67,6 +67,7 @@ type log struct {
 	LogPath      string `mapstructure:"log_path"`
 	LogPrefix    string `mapstructure:"log_prefix"`
 	GinLogPrefix string `mapstructure:"gin_log_prefix"`
+	LogMaxDays   int    `mapstructure:"log_max_days"`
 }
 type snowflake struct {
 	WorkerID      int64 `mapstructure:"worker-id"`

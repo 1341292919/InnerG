@@ -14,8 +14,8 @@ func loading() {
 	config.Init()
 	dao.Init()
 	metrics.Init()
-	logger.InitLogger(config.Log.LogPath, config.Log.LogPrefix)
-	logger.InitGinLogger(config.Log.LogPath, config.Log.GinLogPrefix)
+	logger.InitLogger(config.Log.LogPath, config.Log.LogPrefix, config.Log.LogMaxDays)
+	logger.InitGinLogger(config.Log.LogPath, config.Log.GinLogPrefix, config.Log.LogMaxDays)
 }
 
 func main() {

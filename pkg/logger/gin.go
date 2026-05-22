@@ -17,6 +17,7 @@ import (
 type GinLogger struct {
 	dir        string       // 日志目录
 	prefix     string       // 文件名前缀
+	maxDays    int          // 日志保留天数，0 表示不清理
 	currentDay string       // 当前日期（用于判断是否需要切换）
 	file       *os.File     // 当前日志文件
 	writer     io.Writer    // 输出写入器（文件 + 控制台）
@@ -28,10 +29,11 @@ var GinLog *GinLogger
 // InitGinLogger 初始化Gin专用日志系统
 // dir: 日志目录，如 "./logs"
 // prefix: 文件名前缀，如 "gin"
-func InitGinLogger(dir, prefix string) {
+func InitGinLogger(dir, prefix string, maxDays int) {
 	l := &GinLogger{
-		dir:    dir,
-		prefix: prefix,
+		dir:     dir,
+		prefix:  prefix,
+		maxDays: maxDays,
 	}
 
 	// 创建目录
@@ -86,7 +88,33 @@ func (l *GinLogger) rotate() error {
 	default:
 		l.writer = os.Stdout
 	}
+
+	l.cleanup()
 	return nil
+}
+
+// cleanup 删除超过保留天数的旧日志文件
+func (l *GinLogger) cleanup() {
+	if l.maxDays <= 0 {
+		return
+	}
+	cutoff := time.Now().AddDate(0, 0, -l.maxDays)
+	entries, err := os.ReadDir(l.dir)
+	if err != nil {
+		return
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasPrefix(entry.Name(), l.prefix) {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		if info.ModTime().Before(cutoff) {
+			os.Remove(filepath.Join(l.dir, entry.Name()))
+		}
+	}
 }
 
 // checkRotate 检查是否需要切换文件（每天第一次写入时触发）
