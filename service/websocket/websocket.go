@@ -31,7 +31,7 @@ func NewWebSocketSrv() *WebSocketSrv {
 	WebSocketSrvOnce.Do(func() {
 		producer, err := rabbitmq.NewProducer(constants.WebsocketService)
 		if err != nil {
-			panic(fmt.Errorf("Init WebSocketService : ", err.Error()))
+			panic(fmt.Errorf("init WebSocketService: %w", err))
 		}
 		WebSocketSrvIns = &WebSocketSrv{
 			manager: manager.NewConnectionManager(config.Service.WebsocketShardNum),

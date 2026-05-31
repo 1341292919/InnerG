@@ -48,7 +48,7 @@ func MailSendCode(to string, code string) error {
 	}
 
 	if err := e.Send(addr, auth); err != nil {
-		log.Printf("MailSendCode addr:%s : %w", addr, err.Error())
+		log.Printf("MailSendCode addr:%s : %v", addr, err)
 		return errno.NewErr(errno.InternalServiceErrorCode, "发送邮箱验证码失败")
 	}
 	return nil

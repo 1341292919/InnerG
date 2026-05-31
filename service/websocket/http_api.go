@@ -7,9 +7,9 @@ import (
 	"context"
 )
 
-func (ws *WebSocketSrv) GetMessagesAfterTimestamp(ctx context.Context, userID, targetID, after int64) ([]*model.Message, error) {
+func (ws *WebSocketSrv) GetMessagesByTimeRange(ctx context.Context, userID, targetID, after, before int64, pageSize, pageNum int) ([]*model.Message, int64, error) {
 	websocketDao := dao.NewWebsocketDao()
-	return websocketDao.Db.GetMessagesAfterTimestamp(ctx, userID, targetID, after)
+	return websocketDao.Db.GetMessagesByTimeRange(ctx, userID, targetID, after, before, pageSize, pageNum)
 }
 
 func (ws *WebSocketSrv) GetUnreadMessages(ctx context.Context, userID int64) ([]*model.Message, error) {

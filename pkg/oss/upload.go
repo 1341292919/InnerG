@@ -17,7 +17,7 @@ import (
 func IsImage(data *multipart.FileHeader) error {
 	file, err := data.Open()
 	if err != nil {
-		return fmt.Errorf("open file error " + err.Error())
+		return fmt.Errorf("open file error: %w", err)
 	}
 	defer file.Close()
 
@@ -25,10 +25,10 @@ func IsImage(data *multipart.FileHeader) error {
 	buffer := make([]byte, 512)
 	n, err := file.Read(buffer)
 	if err != nil && err != io.EOF {
-		return fmt.Errorf("read file error" + err.Error())
+		return fmt.Errorf("read file error: %w", err)
 	}
 	if n < 12 { // 最小需要读取一些字节来检测基本格式
-		return fmt.Errorf("file too small" + err.Error())
+		return fmt.Errorf("file too small")
 	}
 
 	// 使用可靠的文件类型检测库
@@ -55,14 +55,14 @@ func SaveFile(data *multipart.FileHeader, storePath, fileName string) (err error
 	if _, err := os.Stat(storePath); os.IsNotExist(err) {
 		err := os.MkdirAll(storePath, 0755) //0755 是一个八进制数，表示文件或目录的权限。它的二进制形式是 111 101 101，对应的权限
 		if err != nil {
-			return fmt.Errorf("mkdir error " + err.Error())
+			return fmt.Errorf("mkdir error: %w", err)
 		}
 	}
 
 	//打开本地文件
 	dist, err := os.OpenFile(filepath.Join(storePath, fileName), os.O_RDWR|os.O_CREATE, 0777)
 	if err != nil {
-		return fmt.Errorf("open file error " + err.Error())
+		return fmt.Errorf("open file error: %w", err)
 	}
 	defer func(dist *os.File) {
 		_ = dist.Close()
@@ -104,7 +104,7 @@ func Upload(localFile, filename, userid, origin string) (string, error) {
 
 	recorder, err := storage.NewFileRecorder(os.TempDir())
 	if err != nil {
-		return "", fmt.Errorf("create file recorder failed" + err.Error())
+		return "", fmt.Errorf("create file recorder failed: %w", err)
 	}
 
 	putExtra := storage.RputV2Extra{

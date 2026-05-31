@@ -31,7 +31,7 @@ func SendMessageToAPI(ms []Message) (*http.Response, error) {
 	}
 	bodyJson, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, fmt.Errorf("SendMessageToAPI : parase Json Error " + err.Error())
+		return nil, fmt.Errorf("SendMessageToAPI: parse json error: %w", err)
 	}
 	req, err := http.NewRequest(
 		constants.ApiRequestWay,
@@ -39,14 +39,14 @@ func SendMessageToAPI(ms []Message) (*http.Response, error) {
 		bytes.NewReader(bodyJson))
 
 	if err != nil {
-		return nil, fmt.Errorf("SendMessageToAPI : new http request Error " + err.Error())
+		return nil, fmt.Errorf("SendMessageToAPI: new http request error: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", ProcessApiKey())
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("SendMessageToAPI : send http request Error " + err.Error())
+		return nil, fmt.Errorf("SendMessageToAPI: send http request error: %w", err)
 	}
 	return resp, nil
 }

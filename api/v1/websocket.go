@@ -63,14 +63,25 @@ func GetWebSocketMessages() gin.HandlerFunc {
 			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
 			return
 		}
+		if req.PageSize <= 0 {
+			req.PageSize = 20
+		}
+		if req.PageNum <= 0 {
+			req.PageNum = 1
+		}
 		uid := ctl.GetUserInfo(ctx.Request.Context()).Id
 		srv := service.NewWebSocketSrv()
-		msgs, err := srv.GetMessagesAfterTimestamp(ctx.Request.Context(), uid, req.TargetID, req.After)
+		msgs, total, err := srv.GetMessagesByTimeRange(ctx.Request.Context(), uid, req.TargetID, req.After, req.Before, req.PageSize, req.PageNum)
 		if err != nil {
 			pack.RespError(ctx, err)
 			return
 		}
-		pack.RespData(ctx, types.GetMessagesResp{Messages: pack.BuildMessageList(msgs)})
+		pack.RespData(ctx, types.GetMessagesResp{
+			Messages:   pack.BuildMessageList(msgs),
+			TotalCount: total,
+			PageIndex:  req.PageNum,
+			PageSize:   req.PageSize,
+		})
 	}
 }
 

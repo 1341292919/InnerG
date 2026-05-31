@@ -6,6 +6,8 @@ import (
 	"sync"
 )
 
+const defaultShardNum = 32
+
 type connShard struct {
 	mu          sync.RWMutex
 	connections map[string]*UserConnection
@@ -16,6 +18,9 @@ type ConnectionManager struct {
 }
 
 func NewConnectionManager(shardNum int) *ConnectionManager {
+	if shardNum <= 0 {
+		shardNum = defaultShardNum
+	}
 	shards := make([]*connShard, shardNum)
 	for i := range shards {
 		shards[i] = &connShard{

@@ -44,21 +44,35 @@ func (db *webSocketDB) GetOfflineMessages(ctx context.Context, toUser int64, lim
 	return messages, nil
 }
 
-// GetMessagesAfterTimestamp 查询两个用户在某个时间戳后的消息（排除已撤回和已删除）
-func (db *webSocketDB) GetMessagesAfterTimestamp(ctx context.Context, user1, user2 int64, timestamp int64) ([]*model.Message, error) {
+// GetMessagesByTimeRange 查询两个用户在时间区间内的消息（排除已撤回和已删除）
+// after/before 为可选时间戳，均未传则查询全部
+func (db *webSocketDB) GetMessagesByTimeRange(ctx context.Context, user1, user2 int64, after, before int64, pageSize, pageNum int) ([]*model.Message, int64, error) {
 	var messages []*model.Message
-	err := db.client.WithContext(ctx).
+	var total int64
+	query := db.client.WithContext(ctx).
 		Table(constants.MessageTableName).
 		Where(
-			"((from_user = ? AND to_user = ?) OR (from_user = ? AND to_user = ?)) AND created_at > ? AND status NOT IN ?",
-			user1, user2, user2, user1, timestamp, []int8{constants.MessageRecalledStatus, constants.MessageDeletedStatus},
-		).
-		Order("created_at ASC").
-		Find(&messages).Error
-	if err != nil {
-		return nil, errno.NewErr(errno.MySQLDBErrorCode, "GetMessagesAfterTimestamp: "+err.Error())
+			"((from_user = ? AND to_user = ?) OR (from_user = ? AND to_user = ?)) AND status NOT IN ?",
+			user1, user2, user2, user1, []int8{constants.MessageRecalledStatus, constants.MessageDeletedStatus},
+		)
+	if after > 0 {
+		query = query.Where("created_at > ?", after)
 	}
-	return messages, nil
+	if before > 0 {
+		query = query.Where("created_at < ?", before)
+	}
+	err := query.Count(&total).Error
+	if err != nil {
+		return nil, 0, errno.NewErr(errno.MySQLDBErrorCode, "GetMessagesByTimeRange: "+err.Error())
+	}
+	if pageSize > 0 && pageNum > 0 {
+		query = query.Limit(pageSize).Offset((pageNum - 1) * pageSize)
+	}
+	err = query.Order("created_at ASC").Find(&messages).Error
+	if err != nil {
+		return nil, 0, errno.NewErr(errno.MySQLDBErrorCode, "GetMessagesByTimeRange: "+err.Error())
+	}
+	return messages, total, nil
 }
 
 // UpdateMessageStatus 更新消息状态
