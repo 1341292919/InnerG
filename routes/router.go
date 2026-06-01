@@ -54,6 +54,13 @@ func NewRouter() *gin.Engine {
 			authed.GET("music/song/detail", api.GetSongDetail())
 
 			// 社交聊天
+			authed.POST("friend/request", api.SendFriendRequest())
+			authed.POST("friend/accept", api.AcceptFriendRequest())
+			authed.POST("friend/reject", api.RejectFriendRequest())
+			authed.POST("friend/delete", api.DeleteFriend())
+			authed.GET("friend/list", api.ListFriends())
+			authed.GET("friend/requests", api.ListFriendRequests())
+
 			authed.GET("ws/connection", api.WebSocketConnectionHandler())
 			authed.GET("ws/messages", api.GetWebSocketMessages())
 			authed.GET("ws/unread", api.GetWebSocketUnread())
