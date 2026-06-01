@@ -7,6 +7,7 @@ import (
 	"InnerG/pkg/errno"
 	"context"
 	"errors"
+	"fmt"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -14,6 +15,22 @@ import (
 
 type friendDB struct {
 	client *gorm.DB
+}
+
+type friendBusinessError struct {
+	error
+}
+
+func newFriendBusinessError(format string, args ...interface{}) error {
+	return friendBusinessError{error: fmt.Errorf(format, args...)}
+}
+
+func wrapFriendDBError(op string, err error) error {
+	var businessErr friendBusinessError
+	if errors.As(err, &businessErr) {
+		return err
+	}
+	return errno.NewErr(errno.MySQLDBErrorCode, op+": "+err.Error())
 }
 
 func NewFriendDB(db *gorm.DB) _interface.FriendDB {
@@ -38,44 +55,58 @@ func (db *friendDB) GetFriend(ctx context.Context, userID, friendID int64) (*mod
 }
 
 func (db *friendDB) CreateFriendRequest(ctx context.Context, request *model.Friend) error {
-	var existing model.Friend
-	err := db.client.WithContext(ctx).
-		Table(constants.FriendTableName).
-		Where("user_id = ? AND friend_id = ?", request.UserID, request.FriendID).
-		First(&existing).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if err := db.client.WithContext(ctx).Table(constants.FriendTableName).Create(request).Error; err != nil {
-				return errno.NewErr(errno.MySQLDBErrorCode, "CreateFriendRequest: "+err.Error())
+	err := db.client.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var existing model.Friend
+		err := tx.Table(constants.FriendTableName).
+			Where("user_id = ? AND friend_id = ?", request.UserID, request.FriendID).
+			First(&existing).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return tx.Table(constants.FriendTableName).Create(request).Error
+			}
+			return err
+		}
+
+		switch existing.Status {
+		case constants.FriendDeletedStatus, constants.FriendRejectedStatus:
+			result := tx.Table(constants.FriendTableName).
+				Where("user_id = ? AND friend_id = ? AND status IN ?", request.UserID, request.FriendID, []int8{
+					constants.FriendDeletedStatus,
+					constants.FriendRejectedStatus,
+				}).
+				Updates(map[string]interface{}{
+					"status":     constants.FriendPendingStatus,
+					"created_at": request.CreatedAt,
+				})
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected == 0 {
+				return newFriendBusinessError("好友请求不存在")
 			}
 			return nil
+		case constants.FriendPendingStatus, constants.FriendAcceptedStatus:
+			return newFriendBusinessError("好友请求已存在")
+		default:
+			return newFriendBusinessError("好友请求状态异常")
 		}
-		return errno.NewErr(errno.MySQLDBErrorCode, "CreateFriendRequest: "+err.Error())
-	}
-
-	if existing.Status != constants.FriendRejectedStatus && existing.Status != constants.FriendDeletedStatus {
-		return errno.NewErr(errno.MySQLDBErrorCode, "CreateFriendRequest: active friend row exists")
-	}
-
-	err = db.client.WithContext(ctx).
-		Table(constants.FriendTableName).
-		Where("user_id = ? AND friend_id = ?", request.UserID, request.FriendID).
-		Updates(map[string]interface{}{
-			"status":     constants.FriendPendingStatus,
-			"created_at": request.CreatedAt,
-		}).Error
+	})
 	if err != nil {
-		return errno.NewErr(errno.MySQLDBErrorCode, "CreateFriendRequest: "+err.Error())
+		return wrapFriendDBError("CreateFriendRequest", err)
 	}
 	return nil
 }
 
 func (db *friendDB) AcceptFriendRequest(ctx context.Context, requesterID, addresseeID int64, now int64) error {
 	err := db.client.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Table(constants.FriendTableName).
-			Where("user_id = ? AND friend_id = ?", requesterID, addresseeID).
-			Update("status", constants.FriendAcceptedStatus).Error; err != nil {
-			return err
+		result := tx.Table(constants.FriendTableName).
+			Where("user_id = ? AND friend_id = ? AND status = ?", requesterID, addresseeID, constants.FriendPendingStatus).
+			Update("status", constants.FriendAcceptedStatus)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected != 1 {
+			return newFriendBusinessError("好友请求不存在")
 		}
 
 		friend := &model.Friend{
@@ -94,35 +125,50 @@ func (db *friendDB) AcceptFriendRequest(ctx context.Context, requesterID, addres
 			Create(friend).Error
 	})
 	if err != nil {
-		return errno.NewErr(errno.MySQLDBErrorCode, "AcceptFriendRequest: "+err.Error())
+		return wrapFriendDBError("AcceptFriendRequest", err)
 	}
 	return nil
 }
 
 func (db *friendDB) RejectFriendRequest(ctx context.Context, requesterID, addresseeID int64) error {
-	err := db.client.WithContext(ctx).
+	result := db.client.WithContext(ctx).
 		Table(constants.FriendTableName).
-		Where("user_id = ? AND friend_id = ?", requesterID, addresseeID).
-		Update("status", constants.FriendRejectedStatus).Error
-	if err != nil {
-		return errno.NewErr(errno.MySQLDBErrorCode, "RejectFriendRequest: "+err.Error())
+		Where("user_id = ? AND friend_id = ? AND status = ?", requesterID, addresseeID, constants.FriendPendingStatus).
+		Update("status", constants.FriendRejectedStatus)
+	if result.Error != nil {
+		return errno.NewErr(errno.MySQLDBErrorCode, "RejectFriendRequest: "+result.Error.Error())
+	}
+	if result.RowsAffected != 1 {
+		return fmt.Errorf("好友请求不存在")
 	}
 	return nil
 }
 
 func (db *friendDB) DeleteFriend(ctx context.Context, userID, friendID int64) error {
 	err := db.client.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Table(constants.FriendTableName).
-			Where("user_id = ? AND friend_id = ?", userID, friendID).
-			Update("status", constants.FriendDeletedStatus).Error; err != nil {
-			return err
+		result := tx.Table(constants.FriendTableName).
+			Where("user_id = ? AND friend_id = ? AND status = ?", userID, friendID, constants.FriendAcceptedStatus).
+			Update("status", constants.FriendDeletedStatus)
+		if result.Error != nil {
+			return result.Error
 		}
-		return tx.Table(constants.FriendTableName).
-			Where("user_id = ? AND friend_id = ?", friendID, userID).
-			Update("status", constants.FriendDeletedStatus).Error
+		if result.RowsAffected != 1 {
+			return newFriendBusinessError("双方不是好友")
+		}
+
+		result = tx.Table(constants.FriendTableName).
+			Where("user_id = ? AND friend_id = ? AND status = ?", friendID, userID, constants.FriendAcceptedStatus).
+			Update("status", constants.FriendDeletedStatus)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected != 1 {
+			return newFriendBusinessError("双方不是好友")
+		}
+		return nil
 	})
 	if err != nil {
-		return errno.NewErr(errno.MySQLDBErrorCode, "DeleteFriend: "+err.Error())
+		return wrapFriendDBError("DeleteFriend", err)
 	}
 	return nil
 }
