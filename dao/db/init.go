@@ -75,3 +75,7 @@ func NewMusicDBClient() _interface.MusicDB {
 func NewWebSocketDBClient() _interface.WebSocketDB {
 	return NewWebSocketDB(_db)
 }
+
+func NewFriendDBClient() _interface.FriendDB {
+	return NewFriendDB(_db)
+}
