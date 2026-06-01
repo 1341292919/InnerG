@@ -8,4 +8,5 @@ const (
 	PlaylistSongTableName = "playlist_songs"
 	MessageTableName      = "messages"
 	SingerTableName       = "singer"
+	FriendTableName       = "friend"
 )

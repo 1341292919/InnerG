@@ -1,7 +1,5 @@
 package constants
 
-const FriendTableName = "friend"
-
 const (
 	FriendPendingStatus  int8 = 1
 	FriendAcceptedStatus int8 = 2
