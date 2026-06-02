@@ -8,6 +8,9 @@ import (
 )
 
 func (ws *WebSocketSrv) GetMessagesByTimeRange(ctx context.Context, userID, targetID, after, before int64, pageSize, pageNum int) ([]*model.Message, int64, error) {
+	if err := canChat(ctx, userID, targetID); err != nil {
+		return nil, 0, err
+	}
 	websocketDao := dao.NewWebsocketDao()
 	return websocketDao.Db.GetMessagesByTimeRange(ctx, userID, targetID, after, before, pageSize, pageNum)
 }

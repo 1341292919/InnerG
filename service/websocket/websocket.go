@@ -7,6 +7,7 @@ import (
 	"InnerG/pkg/constants"
 	"InnerG/pkg/ctl"
 	"InnerG/pkg/logger"
+	rootservice "InnerG/service"
 	"InnerG/service/websocket/manager"
 	"InnerG/service/websocket/message"
 	"context"
@@ -20,6 +21,10 @@ import (
 
 var WebSocketSrvIns *WebSocketSrv
 var WebSocketSrvOnce sync.Once
+
+var isFriend = func(ctx context.Context, userID, targetID int64) (bool, error) {
+	return rootservice.GetFriendSrv().IsFriend(ctx, userID, targetID)
+}
 
 type WebSocketSrv struct {
 	manager *manager.ConnectionManager
@@ -39,6 +44,17 @@ func NewWebSocketSrv() *WebSocketSrv {
 		}
 	})
 	return WebSocketSrvIns
+}
+
+func canChat(ctx context.Context, userID, targetID int64) error {
+	ok, err := isFriend(ctx, userID, targetID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("双方不是好友")
+	}
+	return nil
 }
 
 func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Conn) {
@@ -92,6 +108,10 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 			}
 			// 拒绝非本人信息
 			if m.UserID != uid {
+				continue
+			}
+			if err = canChat(ctx, m.UserID, m.TargetID); err != nil {
+				logger.Log.Error("NewConnection:canChat: ", err)
 				continue
 			}
 			//  路由消息
