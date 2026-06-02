@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/goccy/go-json"
+	json "github.com/goccy/go-json"
 	"github.com/gorilla/websocket"
 )
 
@@ -146,6 +146,7 @@ func (ws *WebSocketSrv) RouteMessage(m message.Message) error {
 		pushed = true
 	}
 	var err error
+	m.Status = constants.MessagePushedStatus
 	// 加入消息队列
 	// 离线消息
 	if !pushed {

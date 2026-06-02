@@ -1,8 +1,13 @@
 package constants
 
 const (
-	FriendPendingStatus  int8 = 1
-	FriendAcceptedStatus int8 = 2
-	FriendRejectedStatus int8 = 3
-	FriendDeletedStatus  int8 = 4
+	FriendActiveStatus  int8 = 1
+	FriendDeletedStatus int8 = 2
+)
+
+const (
+	FriendRequestPendingStatus   int8 = 1
+	FriendRequestAcceptedStatus  int8 = 2
+	FriendRequestRejectedStatus  int8 = 3
+	FriendRequestCancelledStatus int8 = 4
 )

@@ -1,10 +1,12 @@
 package service
 
 import (
+	"InnerG/config"
 	"InnerG/dao"
 	"InnerG/dao/db/model"
 	_interface "InnerG/dao/interface"
 	"InnerG/pkg/constants"
+	"InnerG/pkg/utils"
 	"context"
 	"fmt"
 	"sync"
@@ -16,11 +18,16 @@ var FriendSrvOnce sync.Once
 
 type FriendSrv struct {
 	db _interface.FriendDB
+	sf *utils.Snowflake
 }
 
 func GetFriendSrv() *FriendSrv {
 	FriendSrvOnce.Do(func() {
-		FriendSrvIns = &FriendSrv{db: dao.NewFriendDao(context.Background()).Db}
+		sf, _ := utils.NewSnowflake(config.Snowflake.DatancenterID, config.Snowflake.WorkerID)
+		FriendSrvIns = &FriendSrv{
+			db: dao.NewFriendDao(context.Background()).Db,
+			sf: sf,
+		}
 	})
 	return FriendSrvIns
 }
@@ -34,47 +41,76 @@ func (s *FriendSrv) CreateFriendRequest(ctx context.Context, userID, friendID in
 	if err != nil {
 		return err
 	}
-	if exist {
-		switch existing.Status {
-		case constants.FriendPendingStatus:
-			return fmt.Errorf("好友请求已存在")
-		case constants.FriendAcceptedStatus:
-			return fmt.Errorf("已经是好友")
-		}
+	if exist && existing.Status == constants.FriendActiveStatus {
+		return fmt.Errorf("已经是好友")
 	}
 
-	return s.db.CreateFriendRequest(ctx, &model.Friend{
-		UserID:    userID,
-		FriendID:  friendID,
-		Status:    constants.FriendPendingStatus,
+	request, exist, err := s.db.GetFriendRequest(ctx, userID, friendID)
+	if err != nil {
+		return err
+	}
+	if exist && request.Status == constants.FriendRequestPendingStatus {
+		return fmt.Errorf("好友请求已存在")
+	}
+
+	id, err := s.sf.NextVal()
+	if err != nil {
+		return err
+	}
+
+	return s.db.CreateFriendRequest(ctx, &model.FriendRequest{
+		ID:        id,
+		FromUser:  userID,
+		ToUser:    friendID,
+		Status:    constants.FriendRequestPendingStatus,
 		CreatedAt: time.Now().Unix(),
 	})
 }
 
 func (s *FriendSrv) AcceptFriendRequest(ctx context.Context, currentUserID, requesterID int64) error {
-	request, exist, err := s.db.GetFriend(ctx, requesterID, currentUserID)
+	request, exist, err := s.db.GetFriendRequest(ctx, requesterID, currentUserID)
 	if err != nil {
 		return err
 	}
 	if !exist {
 		return fmt.Errorf("好友请求不存在")
 	}
-	if request.Status != constants.FriendPendingStatus {
+	if request.Status != constants.FriendRequestPendingStatus {
 		return fmt.Errorf("好友请求状态不是待处理")
 	}
 
-	return s.db.AcceptFriendRequest(ctx, requesterID, currentUserID, time.Now().Unix())
+	forwardID, err := s.sf.NextVal()
+	if err != nil {
+		return err
+	}
+	reverseID, err := s.sf.NextVal()
+	if err != nil {
+		return err
+	}
+
+	return s.db.AcceptFriendRequest(ctx, requesterID, currentUserID, forwardID, reverseID, time.Now().Unix())
+}
+
+func (s *FriendSrv) HandleFriendRequest(ctx context.Context, currentUserID, requesterID int64, actionType string) error {
+	switch actionType {
+	case "accept":
+		return s.AcceptFriendRequest(ctx, currentUserID, requesterID)
+	case "reject":
+		return s.RejectFriendRequest(ctx, currentUserID, requesterID)
+	default:
+		return fmt.Errorf("好友请求操作类型错误")
+	}
 }
 
 func (s *FriendSrv) RejectFriendRequest(ctx context.Context, currentUserID, requesterID int64) error {
-	request, exist, err := s.db.GetFriend(ctx, requesterID, currentUserID)
+	request, exist, err := s.db.GetFriendRequest(ctx, requesterID, currentUserID)
 	if err != nil {
 		return err
 	}
 	if !exist {
 		return fmt.Errorf("好友请求不存在")
 	}
-	if request.Status != constants.FriendPendingStatus {
+	if request.Status != constants.FriendRequestPendingStatus {
 		return fmt.Errorf("好友请求状态不是待处理")
 	}
 
@@ -97,7 +133,7 @@ func (s *FriendSrv) ListFriends(ctx context.Context, userID int64) ([]*model.Fri
 	return s.db.ListFriends(ctx, userID)
 }
 
-func (s *FriendSrv) ListInboundRequests(ctx context.Context, userID int64) ([]*model.Friend, error) {
+func (s *FriendSrv) ListInboundRequests(ctx context.Context, userID int64) ([]*model.FriendRequest, error) {
 	return s.db.ListInboundRequests(ctx, userID)
 }
 

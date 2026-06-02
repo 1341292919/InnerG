@@ -34,13 +34,11 @@ func wrapFriendDBError(op string, err error) error {
 }
 
 func NewFriendDB(db *gorm.DB) _interface.FriendDB {
-	return &friendDB{
-		client: db,
-	}
+	return &friendDB{client: db}
 }
 
 func (db *friendDB) GetFriend(ctx context.Context, userID, friendID int64) (*model.Friend, bool, error) {
-	var friend *model.Friend
+	var friend model.Friend
 	err := db.client.WithContext(ctx).
 		Table(constants.FriendTableName).
 		Where("user_id = ? AND friend_id = ?", userID, friendID).
@@ -51,31 +49,50 @@ func (db *friendDB) GetFriend(ctx context.Context, userID, friendID int64) (*mod
 		}
 		return nil, false, errno.NewErr(errno.MySQLDBErrorCode, "GetFriend: "+err.Error())
 	}
-	return friend, true, nil
+	return &friend, true, nil
 }
 
-func (db *friendDB) CreateFriendRequest(ctx context.Context, request *model.Friend) error {
+func (db *friendDB) GetFriendRequest(ctx context.Context, fromUser, toUser int64) (*model.FriendRequest, bool, error) {
+	var request model.FriendRequest
+	err := db.client.WithContext(ctx).
+		Table(constants.FriendRequestTableName).
+		Where("from_user = ? AND to_user = ?", fromUser, toUser).
+		First(&request).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, false, nil
+		}
+		return nil, false, errno.NewErr(errno.MySQLDBErrorCode, "GetFriendRequest: "+err.Error())
+	}
+	return &request, true, nil
+}
+
+func (db *friendDB) CreateFriendRequest(ctx context.Context, request *model.FriendRequest) error {
 	err := db.client.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var existing model.Friend
-		err := tx.Table(constants.FriendTableName).
-			Where("user_id = ? AND friend_id = ?", request.UserID, request.FriendID).
+		var existing model.FriendRequest
+		err := tx.Table(constants.FriendRequestTableName).
+			Where("from_user = ? AND to_user = ?", request.FromUser, request.ToUser).
 			First(&existing).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return tx.Table(constants.FriendTableName).Create(request).Error
+				return tx.Table(constants.FriendRequestTableName).Create(request).Error
 			}
 			return err
 		}
 
 		switch existing.Status {
-		case constants.FriendDeletedStatus, constants.FriendRejectedStatus:
-			result := tx.Table(constants.FriendTableName).
-				Where("user_id = ? AND friend_id = ? AND status IN ?", request.UserID, request.FriendID, []int8{
-					constants.FriendDeletedStatus,
-					constants.FriendRejectedStatus,
+		case constants.FriendRequestPendingStatus:
+			return newFriendBusinessError("好友请求已存在")
+		case constants.FriendRequestAcceptedStatus:
+			return newFriendBusinessError("已经是好友")
+		case constants.FriendRequestRejectedStatus, constants.FriendRequestCancelledStatus:
+			result := tx.Table(constants.FriendRequestTableName).
+				Where("from_user = ? AND to_user = ? AND status IN ?", request.FromUser, request.ToUser, []int8{
+					constants.FriendRequestRejectedStatus,
+					constants.FriendRequestCancelledStatus,
 				}).
 				Updates(map[string]interface{}{
-					"status":     constants.FriendPendingStatus,
+					"status":     constants.FriendRequestPendingStatus,
 					"created_at": request.CreatedAt,
 				})
 			if result.Error != nil {
@@ -85,8 +102,6 @@ func (db *friendDB) CreateFriendRequest(ctx context.Context, request *model.Frie
 				return newFriendBusinessError("好友请求不存在")
 			}
 			return nil
-		case constants.FriendPendingStatus, constants.FriendAcceptedStatus:
-			return newFriendBusinessError("好友请求已存在")
 		default:
 			return newFriendBusinessError("好友请求状态异常")
 		}
@@ -97,11 +112,11 @@ func (db *friendDB) CreateFriendRequest(ctx context.Context, request *model.Frie
 	return nil
 }
 
-func (db *friendDB) AcceptFriendRequest(ctx context.Context, requesterID, addresseeID int64, now int64) error {
+func (db *friendDB) AcceptFriendRequest(ctx context.Context, requesterID, addresseeID int64, forwardID, reverseID int64, now int64) error {
 	err := db.client.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		result := tx.Table(constants.FriendTableName).
-			Where("user_id = ? AND friend_id = ? AND status = ?", requesterID, addresseeID, constants.FriendPendingStatus).
-			Update("status", constants.FriendAcceptedStatus)
+		result := tx.Table(constants.FriendRequestTableName).
+			Where("from_user = ? AND to_user = ? AND status = ?", requesterID, addresseeID, constants.FriendRequestPendingStatus).
+			Update("status", constants.FriendRequestAcceptedStatus)
 		if result.Error != nil {
 			return result.Error
 		}
@@ -109,20 +124,23 @@ func (db *friendDB) AcceptFriendRequest(ctx context.Context, requesterID, addres
 			return newFriendBusinessError("好友请求不存在")
 		}
 
-		friend := &model.Friend{
-			UserID:    addresseeID,
-			FriendID:  requesterID,
-			Status:    constants.FriendAcceptedStatus,
-			CreatedAt: now,
+		friends := []*model.Friend{
+			{ID: forwardID, UserID: requesterID, FriendID: addresseeID, Status: constants.FriendActiveStatus, CreatedAt: now},
+			{ID: reverseID, UserID: addresseeID, FriendID: requesterID, Status: constants.FriendActiveStatus, CreatedAt: now},
 		}
-		return tx.Table(constants.FriendTableName).
-			Clauses(clause.OnConflict{
-				Columns: []clause.Column{{Name: "user_id"}, {Name: "friend_id"}},
-				DoUpdates: clause.Assignments(map[string]interface{}{
-					"status": constants.FriendAcceptedStatus,
-				}),
-			}).
-			Create(friend).Error
+		for _, friend := range friends {
+			if err := tx.Table(constants.FriendTableName).
+				Clauses(clause.OnConflict{
+					Columns: []clause.Column{{Name: "user_id"}, {Name: "friend_id"}},
+					DoUpdates: clause.Assignments(map[string]interface{}{
+						"status": constants.FriendActiveStatus,
+					}),
+				}).
+				Create(friend).Error; err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		return wrapFriendDBError("AcceptFriendRequest", err)
@@ -132,9 +150,9 @@ func (db *friendDB) AcceptFriendRequest(ctx context.Context, requesterID, addres
 
 func (db *friendDB) RejectFriendRequest(ctx context.Context, requesterID, addresseeID int64) error {
 	result := db.client.WithContext(ctx).
-		Table(constants.FriendTableName).
-		Where("user_id = ? AND friend_id = ? AND status = ?", requesterID, addresseeID, constants.FriendPendingStatus).
-		Update("status", constants.FriendRejectedStatus)
+		Table(constants.FriendRequestTableName).
+		Where("from_user = ? AND to_user = ? AND status = ?", requesterID, addresseeID, constants.FriendRequestPendingStatus).
+		Update("status", constants.FriendRequestRejectedStatus)
 	if result.Error != nil {
 		return errno.NewErr(errno.MySQLDBErrorCode, "RejectFriendRequest: "+result.Error.Error())
 	}
@@ -147,7 +165,7 @@ func (db *friendDB) RejectFriendRequest(ctx context.Context, requesterID, addres
 func (db *friendDB) DeleteFriend(ctx context.Context, userID, friendID int64) error {
 	err := db.client.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		result := tx.Table(constants.FriendTableName).
-			Where("user_id = ? AND friend_id = ? AND status = ?", userID, friendID, constants.FriendAcceptedStatus).
+			Where("user_id = ? AND friend_id = ? AND status = ?", userID, friendID, constants.FriendActiveStatus).
 			Update("status", constants.FriendDeletedStatus)
 		if result.Error != nil {
 			return result.Error
@@ -157,7 +175,7 @@ func (db *friendDB) DeleteFriend(ctx context.Context, userID, friendID int64) er
 		}
 
 		result = tx.Table(constants.FriendTableName).
-			Where("user_id = ? AND friend_id = ? AND status = ?", friendID, userID, constants.FriendAcceptedStatus).
+			Where("user_id = ? AND friend_id = ? AND status = ?", friendID, userID, constants.FriendActiveStatus).
 			Update("status", constants.FriendDeletedStatus)
 		if result.Error != nil {
 			return result.Error
@@ -177,7 +195,7 @@ func (db *friendDB) ListFriends(ctx context.Context, userID int64) ([]*model.Fri
 	var friends []*model.Friend
 	err := db.client.WithContext(ctx).
 		Table(constants.FriendTableName).
-		Where("user_id = ? AND status = ?", userID, constants.FriendAcceptedStatus).
+		Where("user_id = ? AND status = ?", userID, constants.FriendActiveStatus).
 		Order("updated_at DESC").
 		Find(&friends).Error
 	if err != nil {
@@ -186,11 +204,11 @@ func (db *friendDB) ListFriends(ctx context.Context, userID int64) ([]*model.Fri
 	return friends, nil
 }
 
-func (db *friendDB) ListInboundRequests(ctx context.Context, userID int64) ([]*model.Friend, error) {
-	var requests []*model.Friend
+func (db *friendDB) ListInboundRequests(ctx context.Context, userID int64) ([]*model.FriendRequest, error) {
+	var requests []*model.FriendRequest
 	err := db.client.WithContext(ctx).
-		Table(constants.FriendTableName).
-		Where("friend_id = ? AND status = ?", userID, constants.FriendPendingStatus).
+		Table(constants.FriendRequestTableName).
+		Where("to_user = ? AND status = ?", userID, constants.FriendRequestPendingStatus).
 		Order("created_at DESC").
 		Find(&requests).Error
 	if err != nil {
@@ -203,7 +221,7 @@ func (db *friendDB) IsFriend(ctx context.Context, userID, friendID int64) (bool,
 	var count int64
 	err := db.client.WithContext(ctx).
 		Table(constants.FriendTableName).
-		Where("user_id = ? AND friend_id = ? AND status = ?", userID, friendID, constants.FriendAcceptedStatus).
+		Where("user_id = ? AND friend_id = ? AND status = ?", userID, friendID, constants.FriendActiveStatus).
 		Count(&count).Error
 	if err != nil {
 		return false, errno.NewErr(errno.MySQLDBErrorCode, "IsFriend: "+err.Error())
