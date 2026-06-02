@@ -1,5 +1,5 @@
 workflow: full
-phase: build
+phase: verify
 build_mode: subagent-driven-development
 isolation: branch
 verify_mode: null
@@ -14,3 +14,4 @@ verified_at: null
 archived: false
 handoff_context: openspec/changes/add-friend-feature/.comet/handoff/design-context.json
 handoff_hash: 8980583265b1ada2788596d4b854f25ac2dd44330864b779778f731bb7647581
+build_command: "cmd.exe /c go test ./..."
