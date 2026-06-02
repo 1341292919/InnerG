@@ -11,7 +11,7 @@ verification_report: docs/superpowers/reports/2026-06-02-add-friend-feature-veri
 branch_status: handled
 created_at: 2026-06-01
 verified_at: 2026-06-02
-archived: false
+archived: true
 handoff_context: openspec/changes/add-friend-feature/.comet/handoff/design-context.json
 handoff_hash: 8980583265b1ada2788596d4b854f25ac2dd44330864b779778f731bb7647581
 build_command: "cmd.exe /c go test ./..."

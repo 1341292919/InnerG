@@ -2,6 +2,8 @@
 comet_change: add-friend-feature
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-06-02-add-friend-feature
+status: final
 ---
 
 # Friend Feature Technical Design

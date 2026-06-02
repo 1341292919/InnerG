@@ -2,6 +2,7 @@
 change: add-friend-feature
 design-doc: docs/superpowers/specs/2026-06-01-friend-feature-design.md
 base-ref: 5f46be604d55c9c068ea7c68d43da04750f0a6df
+archived-with: 2026-06-02-add-friend-feature
 ---
 
 # Friend Feature Implementation Plan
@@ -14,6 +15,7 @@ base-ref: 5f46be604d55c9c068ea7c68d43da04750f0a6df
 
 **Tech Stack:** Go 1.25, Gin, GORM, MySQL, existing `errno`, `pack`, `ctl`, and DAO conventions.
 
+archived-with: 2026-06-02-add-friend-feature
 ---
 
 ## File Structure
