@@ -40,6 +40,27 @@ func (db *userDB) IsUserExistById(ctx context.Context, id int64) (*model.User, b
 	return user, true, nil
 }
 
+func (db *userDB) GetUserBasicByIds(ctx context.Context, ids []int64) (map[int64]*model.User, error) {
+	users := make(map[int64]*model.User, len(ids))
+	if len(ids) == 0 {
+		return users, nil
+	}
+
+	var list []*model.User
+	err := db.client.WithContext(ctx).
+		Table(constants.UserTableName).
+		Select("id", "username", "avatar").
+		Where("id IN ?", ids).
+		Find(&list).Error
+	if err != nil {
+		return nil, errno.NewErr(errno.MySQLDBErrorCode, "GetUserBasicByIds: "+err.Error())
+	}
+	for _, user := range list {
+		users[int64(user.ID)] = user
+	}
+	return users, nil
+}
+
 func (db *userDB) IsUserExistByEmail(ctx context.Context, email string) (*model.User, bool, error) {
 	var user *model.User
 	err := db.client.WithContext(ctx).Table(constants.UserTableName).Where("email = ?", email).First(&user).Error

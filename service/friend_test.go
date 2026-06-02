@@ -6,6 +6,7 @@ import (
 	"InnerG/pkg/utils"
 	"context"
 	"errors"
+	"sort"
 	"testing"
 )
 
@@ -98,7 +99,7 @@ func (f *fakeFriendDB) DeleteFriend(ctx context.Context, userID, friendID int64)
 	return nil
 }
 
-func (f *fakeFriendDB) ListFriends(ctx context.Context, userID int64) ([]*model.Friend, error) {
+func (f *fakeFriendDB) ListFriends(ctx context.Context, userID int64, pageSize, pageNum int) ([]*model.Friend, int64, error) {
 	var friends []*model.Friend
 	for _, friend := range f.friends {
 		if friend.UserID == userID && friend.Status == constants.FriendActiveStatus {
@@ -106,10 +107,12 @@ func (f *fakeFriendDB) ListFriends(ctx context.Context, userID int64) ([]*model.
 			friends = append(friends, &copy)
 		}
 	}
-	return friends, nil
+	sort.Slice(friends, func(i, j int) bool { return friends[i].CreatedAt > friends[j].CreatedAt })
+	total := int64(len(friends))
+	return paginateFriends(friends, pageSize, pageNum), total, nil
 }
 
-func (f *fakeFriendDB) ListInboundRequests(ctx context.Context, userID int64) ([]*model.FriendRequest, error) {
+func (f *fakeFriendDB) ListInboundRequests(ctx context.Context, userID int64, pageSize, pageNum int) ([]*model.FriendRequest, int64, error) {
 	var requests []*model.FriendRequest
 	for _, request := range f.requests {
 		if request.ToUser == userID && request.Status == constants.FriendRequestPendingStatus {
@@ -117,7 +120,33 @@ func (f *fakeFriendDB) ListInboundRequests(ctx context.Context, userID int64) ([
 			requests = append(requests, &copy)
 		}
 	}
-	return requests, nil
+	sort.Slice(requests, func(i, j int) bool { return requests[i].CreatedAt > requests[j].CreatedAt })
+	total := int64(len(requests))
+	return paginateRequests(requests, pageSize, pageNum), total, nil
+}
+
+func paginateFriends(friends []*model.Friend, pageSize, pageNum int) []*model.Friend {
+	start := (pageNum - 1) * pageSize
+	if start >= len(friends) {
+		return []*model.Friend{}
+	}
+	end := start + pageSize
+	if end > len(friends) {
+		end = len(friends)
+	}
+	return friends[start:end]
+}
+
+func paginateRequests(requests []*model.FriendRequest, pageSize, pageNum int) []*model.FriendRequest {
+	start := (pageNum - 1) * pageSize
+	if start >= len(requests) {
+		return []*model.FriendRequest{}
+	}
+	end := start + pageSize
+	if end > len(requests) {
+		end = len(requests)
+	}
+	return requests[start:end]
 }
 
 func (f *fakeFriendDB) IsFriend(ctx context.Context, userID, friendID int64) (bool, error) {
@@ -309,5 +338,47 @@ func TestFriendServiceDeleteAcceptedFriendshipMakesBothDirectionsNotFriends(t *t
 		if ok {
 			t.Fatalf("expected %d -> %d not to be friends after delete", pair[0], pair[1])
 		}
+	}
+}
+
+func TestFriendServiceListFriendsPaginatesWithTotal(t *testing.T) {
+	srv := newTestFriendSrv()
+	fake := srv.db.(*fakeFriendDB)
+	ctx := context.Background()
+	for i := int64(2); i <= 6; i++ {
+		fake.friends[friendKey(1, i)] = &model.Friend{ID: i, UserID: 1, FriendID: i, Status: constants.FriendActiveStatus, CreatedAt: i}
+	}
+
+	friends, total, err := srv.ListFriends(ctx, 1, 2, 2)
+
+	if err != nil {
+		t.Fatalf("list friends: %v", err)
+	}
+	if total != 5 {
+		t.Fatalf("expected total 5, got %d", total)
+	}
+	if len(friends) != 2 || friends[0].FriendID != 4 || friends[1].FriendID != 3 {
+		t.Fatalf("unexpected page friends: %+v", friends)
+	}
+}
+
+func TestFriendServiceListInboundRequestsPaginatesWithTotal(t *testing.T) {
+	srv := newTestFriendSrv()
+	fake := srv.db.(*fakeFriendDB)
+	ctx := context.Background()
+	for i := int64(1); i <= 5; i++ {
+		fake.requests[requestKey(i, 9)] = &model.FriendRequest{ID: i, FromUser: i, ToUser: 9, Status: constants.FriendRequestPendingStatus, CreatedAt: i}
+	}
+
+	requests, total, err := srv.ListInboundRequests(ctx, 9, 2, 2)
+
+	if err != nil {
+		t.Fatalf("list inbound requests: %v", err)
+	}
+	if total != 5 {
+		t.Fatalf("expected total 5, got %d", total)
+	}
+	if len(requests) != 2 || requests[0].FromUser != 3 || requests[1].FromUser != 2 {
+		t.Fatalf("unexpected page requests: %+v", requests)
 	}
 }

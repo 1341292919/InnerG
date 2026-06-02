@@ -12,7 +12,7 @@ type FriendDB interface {
 	AcceptFriendRequest(ctx context.Context, requesterID, addresseeID int64, forwardID, reverseID int64, now int64) error
 	RejectFriendRequest(ctx context.Context, requesterID, addresseeID int64) error
 	DeleteFriend(ctx context.Context, userID, friendID int64) error
-	ListFriends(ctx context.Context, userID int64) ([]*model.Friend, error)
-	ListInboundRequests(ctx context.Context, userID int64) ([]*model.FriendRequest, error)
+	ListFriends(ctx context.Context, userID int64, pageSize, pageNum int) ([]*model.Friend, int64, error)
+	ListInboundRequests(ctx context.Context, userID int64, pageSize, pageNum int) ([]*model.FriendRequest, int64, error)
 	IsFriend(ctx context.Context, userID, friendID int64) (bool, error)
 }

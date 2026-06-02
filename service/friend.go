@@ -129,12 +129,12 @@ func (s *FriendSrv) DeleteFriend(ctx context.Context, userID, friendID int64) er
 	return s.db.DeleteFriend(ctx, userID, friendID)
 }
 
-func (s *FriendSrv) ListFriends(ctx context.Context, userID int64) ([]*model.Friend, error) {
-	return s.db.ListFriends(ctx, userID)
+func (s *FriendSrv) ListFriends(ctx context.Context, userID int64, pageSize, pageNum int) ([]*model.Friend, int64, error) {
+	return s.db.ListFriends(ctx, userID, pageSize, pageNum)
 }
 
-func (s *FriendSrv) ListInboundRequests(ctx context.Context, userID int64) ([]*model.FriendRequest, error) {
-	return s.db.ListInboundRequests(ctx, userID)
+func (s *FriendSrv) ListInboundRequests(ctx context.Context, userID int64, pageSize, pageNum int) ([]*model.FriendRequest, int64, error) {
+	return s.db.ListInboundRequests(ctx, userID, pageSize, pageNum)
 }
 
 func (s *FriendSrv) IsFriend(ctx context.Context, userID, friendID int64) (bool, error) {

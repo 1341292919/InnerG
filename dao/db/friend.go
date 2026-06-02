@@ -191,30 +191,44 @@ func (db *friendDB) DeleteFriend(ctx context.Context, userID, friendID int64) er
 	return nil
 }
 
-func (db *friendDB) ListFriends(ctx context.Context, userID int64) ([]*model.Friend, error) {
+func (db *friendDB) ListFriends(ctx context.Context, userID int64, pageSize, pageNum int) ([]*model.Friend, int64, error) {
 	var friends []*model.Friend
-	err := db.client.WithContext(ctx).
+	var total int64
+	query := db.client.WithContext(ctx).
 		Table(constants.FriendTableName).
-		Where("user_id = ? AND status = ?", userID, constants.FriendActiveStatus).
+		Where("user_id = ? AND status = ?", userID, constants.FriendActiveStatus)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, errno.NewErr(errno.MySQLDBErrorCode, "ListFriends: "+err.Error())
+	}
+	err := query.
 		Order("updated_at DESC").
+		Limit(pageSize).
+		Offset((pageNum - 1) * pageSize).
 		Find(&friends).Error
 	if err != nil {
-		return nil, errno.NewErr(errno.MySQLDBErrorCode, "ListFriends: "+err.Error())
+		return nil, 0, errno.NewErr(errno.MySQLDBErrorCode, "ListFriends: "+err.Error())
 	}
-	return friends, nil
+	return friends, total, nil
 }
 
-func (db *friendDB) ListInboundRequests(ctx context.Context, userID int64) ([]*model.FriendRequest, error) {
+func (db *friendDB) ListInboundRequests(ctx context.Context, userID int64, pageSize, pageNum int) ([]*model.FriendRequest, int64, error) {
 	var requests []*model.FriendRequest
-	err := db.client.WithContext(ctx).
+	var total int64
+	query := db.client.WithContext(ctx).
 		Table(constants.FriendRequestTableName).
-		Where("to_user = ? AND status = ?", userID, constants.FriendRequestPendingStatus).
+		Where("to_user = ? AND status = ?", userID, constants.FriendRequestPendingStatus)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, errno.NewErr(errno.MySQLDBErrorCode, "ListInboundRequests: "+err.Error())
+	}
+	err := query.
 		Order("created_at DESC").
+		Limit(pageSize).
+		Offset((pageNum - 1) * pageSize).
 		Find(&requests).Error
 	if err != nil {
-		return nil, errno.NewErr(errno.MySQLDBErrorCode, "ListInboundRequests: "+err.Error())
+		return nil, 0, errno.NewErr(errno.MySQLDBErrorCode, "ListInboundRequests: "+err.Error())
 	}
-	return requests, nil
+	return requests, total, nil
 }
 
 func (db *friendDB) IsFriend(ctx context.Context, userID, friendID int64) (bool, error) {

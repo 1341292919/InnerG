@@ -5,45 +5,53 @@ import (
 	"InnerG/types"
 )
 
-func BuildFriend(friend *model.Friend) *types.FriendResp {
+func BuildFriend(friend *model.Friend, users map[int64]*model.User) *types.FriendResp {
 	if friend == nil {
 		return nil
 	}
-
-	return &types.FriendResp{
+	resp := &types.FriendResp{
 		UserID:    friend.UserID,
 		FriendID:  friend.FriendID,
 		Status:    friend.Status,
 		CreatedAt: friend.CreatedAt,
 	}
+	if user, ok := users[friend.FriendID]; ok && user != nil {
+		resp.Avatar = user.Avatar
+		resp.Username = user.Username
+	}
+	return resp
 }
 
-func BuildFriendList(friends []*model.Friend) []*types.FriendResp {
+func BuildFriendList(friends []*model.Friend, users map[int64]*model.User) []*types.FriendResp {
 	res := make([]*types.FriendResp, 0, len(friends))
 	for _, friend := range friends {
-		res = append(res, BuildFriend(friend))
+		res = append(res, BuildFriend(friend, users))
 	}
 	return res
 }
 
-func BuildFriendRequest(request *model.FriendRequest) *types.FriendRequestResp {
+func BuildFriendRequest(request *model.FriendRequest, users map[int64]*model.User) *types.FriendRequestResp {
 	if request == nil {
 		return nil
 	}
-
-	return &types.FriendRequestResp{
+	resp := &types.FriendRequestResp{
 		ID:        request.ID,
 		FromUser:  request.FromUser,
 		ToUser:    request.ToUser,
 		Status:    request.Status,
 		CreatedAt: request.CreatedAt,
 	}
+	if user, ok := users[request.FromUser]; ok && user != nil {
+		resp.FromUserAvatar = user.Avatar
+		resp.FromUserName = user.Username
+	}
+	return resp
 }
 
-func BuildFriendRequestList(requests []*model.FriendRequest) []*types.FriendRequestResp {
+func BuildFriendRequestList(requests []*model.FriendRequest, users map[int64]*model.User) []*types.FriendRequestResp {
 	res := make([]*types.FriendRequestResp, 0, len(requests))
 	for _, request := range requests {
-		res = append(res, BuildFriendRequest(request))
+		res = append(res, BuildFriendRequest(request, users))
 	}
 	return res
 }
