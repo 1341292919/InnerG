@@ -63,6 +63,8 @@ func NewRouter() *gin.Engine {
 			authed.GET("ws/connection", api.WebSocketConnectionHandler())
 			authed.GET("ws/messages", api.GetWebSocketMessages())
 			authed.GET("ws/unread", api.GetWebSocketUnread())
+			authed.POST("ws/upload/image", api.UploadWebsocketImage())
+			authed.POST("ws/upload/video", api.UploadWebsocketVideo())
 		}
 	}
 	return r

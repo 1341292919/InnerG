@@ -1,6 +1,7 @@
 package service
 
 import (
+	"InnerG/config"
 	"InnerG/dao"
 	"InnerG/dao/db/model"
 	"InnerG/pkg/constants"
@@ -220,14 +221,14 @@ func (s *UserSrv) UpdateUserAvatar(ctx context.Context, file *multipart.FileHead
 		return "", fmt.Errorf("check image failed: %w", err)
 	}
 	// 识别图片信息
-	fileName := fmt.Sprintf("%v_%v", u.Id, time.Now().Unix())
+	fileName := fmt.Sprintf("%s_%d_%d", constants.UserAvatarFileNamePrefix, u.Id, time.Now().Unix())
 	err = oss.SaveFile(file, constants.StorePath, fileName)
 	if err != nil {
 		logger.Log.Error("UpdateUserAvatar: ", errno.ConvertErr(err).Error())
 		return "", fmt.Errorf("save file failed: %w", err)
 	}
 	filePath := filepath.Join(constants.StorePath, fileName)
-	url, err := oss.Upload(filePath, fileName, strconv.FormatInt(u.Id, 10), constants.OssOrigin)
+	url, err := oss.Upload(filePath, fileName, strconv.FormatInt(u.Id, 10), constants.UserOssOrigin, config.Oss.UserBucket)
 	return url, userDao.Db.UpdateUserAvatar(ctx, strconv.FormatInt(u.Id, 10), url)
 }
 func IsEmail(str string) bool {

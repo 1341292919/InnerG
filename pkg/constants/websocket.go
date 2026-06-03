@@ -32,3 +32,10 @@ const (
 const (
 	WebsocketKeyExpire = 24 * ONE_HOUR
 )
+
+const (
+	WebsocketImageOssOrigin      = "websocket/image"
+	WebsocketVideoOssOrigin      = "websocket/video"
+	WebsocketImageFileNamePrefix = "ws_image"
+	WebsocketVideoFileNamePrefix = "ws_video"
+)
