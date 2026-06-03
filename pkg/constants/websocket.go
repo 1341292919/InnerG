@@ -39,3 +39,20 @@ const (
 	WebsocketImageFileNamePrefix = "ws_image"
 	WebsocketVideoFileNamePrefix = "ws_video"
 )
+
+const (
+	MessageTypeText  int8 = 1
+	MessageTypeImage int8 = 2
+	MessageTypeVideo int8 = 3
+)
+
+var validMessageTypes = map[int8]struct{}{
+	MessageTypeText:  {},
+	MessageTypeImage: {},
+	MessageTypeVideo: {},
+}
+
+func IsValidMessageType(t int8) bool {
+	_, ok := validMessageTypes[t]
+	return ok
+}
