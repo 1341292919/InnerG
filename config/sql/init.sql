@@ -16,38 +16,6 @@ CREATE TABLE InnerG.user
     UNIQUE KEY (email)
 ) AUTO_INCREMENT = 108000;
 
-INSERT INTO InnerG.user (id, account, username, email, avatar, gender, role_type, password_hash, status, created_at, updated_at, deleted_at)
-VALUES (
-           108000,
-           'lbl102300218',
-           '林柏林爱喝酒',
-           '15759762783@163.com',
-           'https://ts3.tc.mm.bing.net/th/id/OIP-C.MBqJCFa5AMwdgTr5_91G4gHaE7?rs=1&pid=ImgDetMain&o=7&rm=3',
-           1,
-           1,  -- role_type: 1-普通用户
-           '$2a$12$sHsUsfhcJPri5.LO0wgovuG4KFozx85tc7CQivRPGCDTz.TUplc7q',
-           0,
-           '2026-03-18 15:02:46',
-           '2026-03-18 23:03:31',
-           NULL
-       );
--- 插入管理员账号
-INSERT INTO InnerG.user (id, account, username, email, avatar, gender, role_type, password_hash, status, created_at, updated_at, deleted_at)
-VALUES (
-           108001,
-           'admin_zhang',
-           '张知行',  -- 管理员姓名，寓意"知行合一"
-           'zhangzhixing@qq.com',
-           'https://ts3.tc.mm.bing.net/th/id/OIP-C.MBqJCFa5AMwdgTr5_91G4gHaE7?rs=1&pid=ImgDetMain&o=7&rm=3',  -- 头像不变
-           1,  -- 性别：男
-           0,  -- role_type: 0-管理员
-           '$2a$12$sHsUsfhcJPri5.LO0wgovuG4KFozx85tc7CQivRPGCDTz.TUplc7q',  -- 密码不变
-           1,  -- status: 1-正常
-           '2026-03-20 10:00:00',  -- 创建时间
-           '2026-03-20 10:00:00',  -- 更新时间
-           NULL
-       );
-
 CREATE TABLE InnerG.songs
 (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -103,8 +71,8 @@ CREATE TABLE InnerG.playlist_songs
 
 
 CREATE TABLE InnerG.messages (
-                                 id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                                 msg_id VARCHAR(64) NOT NULL,              -- 客户端生成的消息ID
+                                  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                                  msg_id VARCHAR(64) NOT NULL,              -- 客户端生成的消息ID
                                  from_user BIGINT NOT NULL,                -- 发送者
                                  to_user BIGINT NOT NULL,                  -- 接收者
                                  content TEXT NOT NULL,                    -- 消息内容
@@ -115,5 +83,31 @@ CREATE TABLE InnerG.messages (
                                  deleted_at DATETIME NULL,
                                  INDEX idx_from_to (from_user, to_user),
                                  INDEX idx_to_from (to_user, from_user),
-                                 INDEX idx_created_at (created_at)
+                                  INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE InnerG.friend (
+                               id BIGINT PRIMARY KEY COMMENT '雪花ID',
+                               user_id BIGINT NOT NULL COMMENT '用户ID',
+                               friend_id BIGINT NOT NULL COMMENT '好友用户ID',
+                               status TINYINT NOT NULL DEFAULT 1 COMMENT '状态：1-正常，2-已删除',
+                               created_at BIGINT NOT NULL COMMENT '创建时间戳',
+                               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                               deleted_at DATETIME NULL,
+                               UNIQUE KEY idx_user_friend (user_id, friend_id),
+                               INDEX idx_user_status (user_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '好友关系表';
+
+CREATE TABLE InnerG.friend_request (
+                                       id BIGINT PRIMARY KEY COMMENT '雪花ID',
+                                       from_user BIGINT NOT NULL COMMENT '申请人ID',
+                                       to_user BIGINT NOT NULL COMMENT '接收人ID',
+                                       status TINYINT NOT NULL DEFAULT 1 COMMENT '状态：1-待处理，2-已接受，3-已拒绝，4-已取消',
+                                       message VARCHAR(100) NOT NULL DEFAULT '' COMMENT '好友申请打招呼内容',
+                                       created_at BIGINT NOT NULL COMMENT '创建时间戳',
+                                       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                       deleted_at DATETIME NULL,
+                                       UNIQUE KEY idx_from_to (from_user, to_user),
+                                       INDEX idx_from_status (from_user, status),
+                                       INDEX idx_to_status (to_user, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '好友申请表';

@@ -7,6 +7,7 @@ import (
 	"InnerG/pkg/constants"
 	"InnerG/pkg/ctl"
 	"InnerG/pkg/logger"
+	rootservice "InnerG/service"
 	"InnerG/service/websocket/manager"
 	"InnerG/service/websocket/message"
 	"context"
@@ -14,12 +15,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/goccy/go-json"
+	json "github.com/goccy/go-json"
 	"github.com/gorilla/websocket"
 )
 
 var WebSocketSrvIns *WebSocketSrv
 var WebSocketSrvOnce sync.Once
+
+var isFriend = func(ctx context.Context, userID, targetID int64) (bool, error) {
+	return rootservice.GetFriendSrv().IsFriend(ctx, userID, targetID)
+}
 
 type WebSocketSrv struct {
 	manager *manager.ConnectionManager
@@ -28,6 +33,9 @@ type WebSocketSrv struct {
 }
 
 func NewWebSocketSrv() *WebSocketSrv {
+	if WebSocketSrvIns != nil {
+		return WebSocketSrvIns
+	}
 	WebSocketSrvOnce.Do(func() {
 		producer, err := rabbitmq.NewProducer(constants.WebsocketService)
 		if err != nil {
@@ -39,6 +47,17 @@ func NewWebSocketSrv() *WebSocketSrv {
 		}
 	})
 	return WebSocketSrvIns
+}
+
+func canChat(ctx context.Context, userID, targetID int64) error {
+	ok, err := isFriend(ctx, userID, targetID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("双方不是好友")
+	}
+	return nil
 }
 
 func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Conn) {
@@ -94,6 +113,10 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 			if m.UserID != uid {
 				continue
 			}
+			if err = canChat(ctx, m.UserID, m.TargetID); err != nil {
+				logger.Log.Error("NewConnection:canChat: ", err)
+				continue
+			}
 			//  路由消息
 			// -- 失败需要中断连接
 			err = ws.RouteMessage(m)
@@ -126,6 +149,7 @@ func (ws *WebSocketSrv) RouteMessage(m message.Message) error {
 		pushed = true
 	}
 	var err error
+	m.Status = constants.MessagePushedStatus
 	// 加入消息队列
 	// 离线消息
 	if !pushed {

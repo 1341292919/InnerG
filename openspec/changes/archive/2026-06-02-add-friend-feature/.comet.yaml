@@ -1,0 +1,17 @@
+workflow: full
+phase: archive
+build_mode: subagent-driven-development
+isolation: branch
+verify_mode: full
+base_ref: 5f46be604d55c9c068ea7c68d43da04750f0a6df
+design_doc: docs/superpowers/specs/2026-06-01-friend-feature-design.md
+plan: docs/superpowers/plans/2026-06-01-friend-feature.md
+verify_result: pass
+verification_report: docs/superpowers/reports/2026-06-02-add-friend-feature-verify.md
+branch_status: handled
+created_at: 2026-06-01
+verified_at: 2026-06-02
+archived: true
+handoff_context: openspec/changes/add-friend-feature/.comet/handoff/design-context.json
+handoff_hash: 8980583265b1ada2788596d4b854f25ac2dd44330864b779778f731bb7647581
+build_command: "cmd.exe /c go test ./..."
