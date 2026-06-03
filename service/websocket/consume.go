@@ -7,6 +7,7 @@ import (
 	"InnerG/pkg/constants"
 	"InnerG/pkg/logger"
 	"InnerG/service/websocket/message"
+	"InnerG/types"
 	"context"
 	"fmt"
 	"sync"
@@ -20,20 +21,23 @@ var WebSocketConsumeOnce sync.Once
 var TaskMapping map[string]mq.Handler
 
 type WebsocketConsume struct {
-	consumerList      []*mq.Consumer
-	offlineConsumeNum int
-	storeConsumeNum   int
+	consumerList            []*mq.Consumer
+	offlineConsumeNum       int
+	storeConsumeNum         int
+	friendRequestConsumeNum int
 }
 
 func NewWebsocketConsume() *WebsocketConsume {
 	WebSocketConsumeOnce.Do(func() {
 		WsConsume = &WebsocketConsume{
-			offlineConsumeNum: constants.OfflineConsumerNum,
-			storeConsumeNum:   constants.StoreConsumerNum,
+			offlineConsumeNum:       constants.OfflineConsumerNum,
+			storeConsumeNum:         constants.StoreConsumerNum,
+			friendRequestConsumeNum: constants.FriendRequestConsumerNum,
 		}
 		WsConsume.consumerList = make([]*mq.Consumer,
 			WsConsume.offlineConsumeNum+
-				WsConsume.storeConsumeNum,
+				WsConsume.storeConsumeNum+
+				WsConsume.friendRequestConsumeNum,
 		)
 		for i := 0; i < WsConsume.offlineConsumeNum; i++ {
 			c, err := mq.NewConsumer(
@@ -55,9 +59,21 @@ func NewWebsocketConsume() *WebsocketConsume {
 			}
 			WsConsume.consumerList[i] = c
 		}
+		start := WsConsume.offlineConsumeNum + WsConsume.storeConsumeNum
+		for i := start; i < start+WsConsume.friendRequestConsumeNum; i++ {
+			c, err := mq.NewConsumer(
+				constants.WebsocketService,
+				constants.FriendRequestConsumeQueueTopic,
+				constants.FriendRequestMessageTopic)
+			if err != nil {
+				panic(fmt.Errorf("Init WebsocketConsume friendRequest[%d]: %w", i-start, err))
+			}
+			WsConsume.consumerList[i] = c
+		}
 		TaskMapping = map[string]mq.Handler{
-			constants.OfflineConsumeQueueTopic: OfflineMessageHandler,
-			constants.StoreConsumeQueueTopic:   StoreMessageHandler,
+			constants.OfflineConsumeQueueTopic:       OfflineMessageHandler,
+			constants.StoreConsumeQueueTopic:         StoreMessageHandler,
+			constants.FriendRequestConsumeQueueTopic: FriendRequestEventHandler,
 		}
 	})
 	return WsConsume
@@ -102,6 +118,34 @@ func StoreMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
 		return rabbitmq.NackRequeue
 	}
 	return rabbitmq.Ack
+}
+
+func FriendRequestEventHandler(d rabbitmq.Delivery) rabbitmq.Action {
+	var event types.FriendRequestEvent
+	if err := json.Unmarshal(d.Body, &event); err != nil {
+		logWebsocketConsumeError("FriendRequestEventHandler: ", err)
+		return rabbitmq.Ack
+	}
+	ws := NewWebSocketSrv()
+	connID := ws.manager.WithConnectionId(event.ToUser)
+	if !ws.manager.IsConnected(connID) {
+		return rabbitmq.Ack
+	}
+	conn := ws.manager.GetConnection(connID)
+	if conn == nil {
+		return rabbitmq.Ack
+	}
+	if err := conn.WriteJSONData(event); err != nil {
+		logWebsocketConsumeError("FriendRequestEventHandler:WriteJSONData: ", err)
+	}
+	return rabbitmq.Ack
+}
+
+func logWebsocketConsumeError(v ...interface{}) {
+	if logger.Log == nil {
+		return
+	}
+	logger.Log.Error(v...)
 }
 
 func (w *WebsocketConsume) Run() {

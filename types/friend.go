@@ -48,3 +48,12 @@ type FriendRequestListResp struct {
 	PageIndex  int                  `json:"page_index"`
 	PageSize   int                  `json:"page_size"`
 }
+
+type FriendRequestEvent struct {
+	Type      string `json:"type"`
+	RequestID int64  `json:"request_id"`
+	FromUser  int64  `json:"from_user"`
+	ToUser    int64  `json:"to_user"`
+	Message   string `json:"message"`
+	CreatedAt int64  `json:"created_at"`
+}

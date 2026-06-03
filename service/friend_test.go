@@ -4,6 +4,7 @@ import (
 	"InnerG/dao/db/model"
 	"InnerG/pkg/constants"
 	"InnerG/pkg/utils"
+	"InnerG/types"
 	"context"
 	"errors"
 	"sort"
@@ -13,6 +14,21 @@ import (
 type fakeFriendDB struct {
 	friends  map[[2]int64]*model.Friend
 	requests map[[2]int64]*model.FriendRequest
+}
+
+type sentFriendEvent struct {
+	topic string
+	data  interface{}
+}
+
+type fakeFriendEventPublisher struct {
+	sent []sentFriendEvent
+	err  error
+}
+
+func (f *fakeFriendEventPublisher) SendMessage(topic string, data interface{}) error {
+	f.sent = append(f.sent, sentFriendEvent{topic: topic, data: data})
+	return f.err
 }
 
 func newFakeFriendDB() *fakeFriendDB {
@@ -157,7 +173,7 @@ func (f *fakeFriendDB) IsFriend(ctx context.Context, userID, friendID int64) (bo
 
 func newTestFriendSrv() *FriendSrv {
 	sf, _ := utils.NewSnowflake(0, 0)
-	return &FriendSrv{db: newFakeFriendDB(), sf: sf}
+	return &FriendSrv{db: newFakeFriendDB(), sf: sf, eventPublisher: &fakeFriendEventPublisher{}}
 }
 
 func TestFriendServiceRejectsSelfRequest(t *testing.T) {
@@ -207,6 +223,55 @@ func TestFriendServiceCreatesRequestWithMessage(t *testing.T) {
 	}
 	if request.Message != "你好，我是 InnerG 用户" {
 		t.Fatalf("expected message to be stored, got %q", request.Message)
+	}
+}
+
+func TestFriendServicePublishesFriendRequestEvent(t *testing.T) {
+	srv := newTestFriendSrv()
+	publisher := srv.eventPublisher.(*fakeFriendEventPublisher)
+	ctx := context.Background()
+
+	if err := srv.CreateFriendRequest(ctx, 1, 2, "你好"); err != nil {
+		t.Fatalf("create request: %v", err)
+	}
+
+	request, exist, err := srv.db.GetFriendRequest(ctx, 1, 2)
+	if err != nil {
+		t.Fatalf("get request: %v", err)
+	}
+	if !exist {
+		t.Fatal("expected request to exist")
+	}
+	if len(publisher.sent) != 1 {
+		t.Fatalf("expected one published event, got %d", len(publisher.sent))
+	}
+	if publisher.sent[0].topic != constants.FriendRequestMessageTopic {
+		t.Fatalf("expected topic %q, got %q", constants.FriendRequestMessageTopic, publisher.sent[0].topic)
+	}
+	event, ok := publisher.sent[0].data.(types.FriendRequestEvent)
+	if !ok {
+		t.Fatalf("expected FriendRequestEvent, got %T", publisher.sent[0].data)
+	}
+	if event.Type != constants.FriendRequestEventType || event.RequestID != request.ID || event.FromUser != 1 || event.ToUser != 2 || event.Message != "你好" || event.CreatedAt != request.CreatedAt {
+		t.Fatalf("unexpected event: %+v request=%+v", event, request)
+	}
+}
+
+func TestFriendServicePublishFailureDoesNotFailRequestCreation(t *testing.T) {
+	srv := newTestFriendSrv()
+	srv.eventPublisher.(*fakeFriendEventPublisher).err = errors.New("publish failed")
+	ctx := context.Background()
+
+	if err := srv.CreateFriendRequest(ctx, 1, 2, "你好"); err != nil {
+		t.Fatalf("expected create request to succeed despite publish failure: %v", err)
+	}
+
+	request, exist, err := srv.db.GetFriendRequest(ctx, 1, 2)
+	if err != nil {
+		t.Fatalf("get request: %v", err)
+	}
+	if !exist || request.Status != constants.FriendRequestPendingStatus {
+		t.Fatalf("expected pending request to remain persisted, got %+v", request)
 	}
 }
 
@@ -293,6 +358,66 @@ func TestFriendServiceAcceptCreatesBidirectionalActiveFriendship(t *testing.T) {
 		if !exist || friend.ID == 0 || friend.Status != constants.FriendActiveStatus {
 			t.Fatalf("expected active friend with snowflake id, got %+v", friend)
 		}
+	}
+}
+
+func TestFriendServiceAcceptPublishesFriendRequestAcceptedEvent(t *testing.T) {
+	srv := newTestFriendSrv()
+	publisher := srv.eventPublisher.(*fakeFriendEventPublisher)
+	ctx := context.Background()
+
+	if err := srv.CreateFriendRequest(ctx, 1, 2, ""); err != nil {
+		t.Fatalf("create request: %v", err)
+	}
+	request, exist, err := srv.db.GetFriendRequest(ctx, 1, 2)
+	if err != nil {
+		t.Fatalf("get request: %v", err)
+	}
+	if !exist {
+		t.Fatal("expected request to exist")
+	}
+	publisher.sent = nil
+
+	if err := srv.AcceptFriendRequest(ctx, 2, 1); err != nil {
+		t.Fatalf("accept request: %v", err)
+	}
+
+	if len(publisher.sent) != 1 {
+		t.Fatalf("expected one published event, got %d", len(publisher.sent))
+	}
+	if publisher.sent[0].topic != constants.FriendRequestMessageTopic {
+		t.Fatalf("expected topic %q, got %q", constants.FriendRequestMessageTopic, publisher.sent[0].topic)
+	}
+	event, ok := publisher.sent[0].data.(types.FriendRequestEvent)
+	if !ok {
+		t.Fatalf("expected FriendRequestEvent, got %T", publisher.sent[0].data)
+	}
+	if event.Type != constants.FriendRequestAcceptedEventType || event.RequestID != request.ID || event.FromUser != 2 || event.ToUser != 1 || event.Message != constants.FriendRequestAcceptedMessage || event.CreatedAt == 0 {
+		t.Fatalf("unexpected accepted event: %+v request=%+v", event, request)
+	}
+}
+
+func TestFriendServiceAcceptPublishFailureDoesNotFailAcceptance(t *testing.T) {
+	srv := newTestFriendSrv()
+	ctx := context.Background()
+
+	if err := srv.CreateFriendRequest(ctx, 1, 2, ""); err != nil {
+		t.Fatalf("create request: %v", err)
+	}
+	publisher := srv.eventPublisher.(*fakeFriendEventPublisher)
+	publisher.sent = nil
+	publisher.err = errors.New("publish failed")
+
+	if err := srv.AcceptFriendRequest(ctx, 2, 1); err != nil {
+		t.Fatalf("expected accept to succeed despite publish failure: %v", err)
+	}
+
+	request, exist, err := srv.db.GetFriendRequest(ctx, 1, 2)
+	if err != nil {
+		t.Fatalf("get request: %v", err)
+	}
+	if !exist || request.Status != constants.FriendRequestAcceptedStatus {
+		t.Fatalf("expected accepted request to remain persisted, got %+v", request)
 	}
 }
 

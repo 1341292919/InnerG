@@ -33,6 +33,9 @@ type WebSocketSrv struct {
 }
 
 func NewWebSocketSrv() *WebSocketSrv {
+	if WebSocketSrvIns != nil {
+		return WebSocketSrvIns
+	}
 	WebSocketSrvOnce.Do(func() {
 		producer, err := rabbitmq.NewProducer(constants.WebsocketService)
 		if err != nil {

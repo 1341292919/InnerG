@@ -5,8 +5,11 @@ import (
 	"InnerG/dao"
 	"InnerG/dao/db/model"
 	_interface "InnerG/dao/interface"
+	"InnerG/dao/rabbitmq"
 	"InnerG/pkg/constants"
+	"InnerG/pkg/logger"
 	"InnerG/pkg/utils"
+	"InnerG/types"
 	"context"
 	"fmt"
 	"sync"
@@ -17,19 +20,45 @@ var FriendSrvIns *FriendSrv
 var FriendSrvOnce sync.Once
 
 type FriendSrv struct {
-	db _interface.FriendDB
-	sf *utils.Snowflake
+	db             _interface.FriendDB
+	sf             *utils.Snowflake
+	eventPublisher friendEventPublisher
+}
+
+type friendEventPublisher interface {
+	SendMessage(topic string, data interface{}) error
 }
 
 func GetFriendSrv() *FriendSrv {
 	FriendSrvOnce.Do(func() {
 		sf, _ := utils.NewSnowflake(config.Snowflake.DatancenterID, config.Snowflake.WorkerID)
+		producer, err := rabbitmq.NewProducer(constants.WebsocketService)
+		if err != nil {
+			logFriendEventError("init friend event publisher: ", err)
+		}
 		FriendSrvIns = &FriendSrv{
-			db: dao.NewFriendDao(context.Background()).Db,
-			sf: sf,
+			db:             dao.NewFriendDao(context.Background()).Db,
+			sf:             sf,
+			eventPublisher: producer,
 		}
 	})
 	return FriendSrvIns
+}
+
+func (s *FriendSrv) publishFriendRequestEvent(event types.FriendRequestEvent) {
+	if s.eventPublisher == nil {
+		return
+	}
+	if err := s.eventPublisher.SendMessage(constants.FriendRequestMessageTopic, event); err != nil {
+		logFriendEventError("publish friend request event: ", err)
+	}
+}
+
+func logFriendEventError(v ...interface{}) {
+	if logger.Log == nil {
+		return
+	}
+	logger.Log.Error(v...)
 }
 
 func (s *FriendSrv) CreateFriendRequest(ctx context.Context, userID, friendID int64, message string) error {
@@ -60,15 +89,32 @@ func (s *FriendSrv) CreateFriendRequest(ctx context.Context, userID, friendID in
 	if err != nil {
 		return err
 	}
+	eventRequestID := id
+	if exist && request != nil {
+		eventRequestID = request.ID
+	}
+	now := time.Now().Unix()
 
-	return s.db.CreateFriendRequest(ctx, &model.FriendRequest{
+	err = s.db.CreateFriendRequest(ctx, &model.FriendRequest{
 		ID:        id,
 		FromUser:  userID,
 		ToUser:    friendID,
 		Status:    constants.FriendRequestPendingStatus,
 		Message:   message,
-		CreatedAt: time.Now().Unix(),
+		CreatedAt: now,
 	})
+	if err != nil {
+		return err
+	}
+	s.publishFriendRequestEvent(types.FriendRequestEvent{
+		Type:      constants.FriendRequestEventType,
+		RequestID: eventRequestID,
+		FromUser:  userID,
+		ToUser:    friendID,
+		Message:   message,
+		CreatedAt: now,
+	})
+	return nil
 }
 
 func (s *FriendSrv) AcceptFriendRequest(ctx context.Context, currentUserID, requesterID int64) error {
@@ -92,7 +138,19 @@ func (s *FriendSrv) AcceptFriendRequest(ctx context.Context, currentUserID, requ
 		return err
 	}
 
-	return s.db.AcceptFriendRequest(ctx, requesterID, currentUserID, forwardID, reverseID, time.Now().Unix())
+	now := time.Now().Unix()
+	if err := s.db.AcceptFriendRequest(ctx, requesterID, currentUserID, forwardID, reverseID, now); err != nil {
+		return err
+	}
+	s.publishFriendRequestEvent(types.FriendRequestEvent{
+		Type:      constants.FriendRequestAcceptedEventType,
+		RequestID: request.ID,
+		FromUser:  currentUserID,
+		ToUser:    requesterID,
+		Message:   constants.FriendRequestAcceptedMessage,
+		CreatedAt: now,
+	})
+	return nil
 }
 
 func (s *FriendSrv) HandleFriendRequest(ctx context.Context, currentUserID, requesterID int64, actionType string) error {
