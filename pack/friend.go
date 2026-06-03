@@ -39,6 +39,7 @@ func BuildFriendRequest(request *model.FriendRequest, users map[int64]*model.Use
 		FromUser:  request.FromUser,
 		ToUser:    request.ToUser,
 		Status:    request.Status,
+		Message:   request.Message,
 		CreatedAt: request.CreatedAt,
 	}
 	if user, ok := users[request.FromUser]; ok && user != nil {

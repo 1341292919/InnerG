@@ -103,6 +103,7 @@ CREATE TABLE InnerG.friend_request (
                                        from_user BIGINT NOT NULL COMMENT '申请人ID',
                                        to_user BIGINT NOT NULL COMMENT '接收人ID',
                                        status TINYINT NOT NULL DEFAULT 1 COMMENT '状态：1-待处理，2-已接受，3-已拒绝，4-已取消',
+                                       message VARCHAR(100) NOT NULL DEFAULT '' COMMENT '好友申请打招呼内容',
                                        created_at BIGINT NOT NULL COMMENT '创建时间戳',
                                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                        deleted_at DATETIME NULL,

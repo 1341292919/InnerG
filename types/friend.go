@@ -1,7 +1,8 @@
 package types
 
 type FriendTargetReq struct {
-	FriendID int64 `json:"friend_id" form:"friend_id" binding:"required"`
+	FriendID int64  `json:"friend_id" form:"friend_id" binding:"required"`
+	Message  string `json:"message" form:"message"`
 }
 
 type FriendPageReq struct {
@@ -35,6 +36,7 @@ type FriendRequestResp struct {
 	FromUser       int64  `json:"from_user"`
 	ToUser         int64  `json:"to_user"`
 	Status         int8   `json:"status"`
+	Message        string `json:"message"`
 	CreatedAt      int64  `json:"created_at"`
 	FromUserAvatar string `json:"from_user_avatar"`
 	FromUserName   string `json:"from_user_name"`

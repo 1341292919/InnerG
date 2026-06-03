@@ -56,6 +56,7 @@ func (f *fakeFriendDB) CreateFriendRequest(ctx context.Context, request *model.F
 			return errors.New("好友请求已存在")
 		case constants.FriendRequestAcceptedStatus, constants.FriendRequestRejectedStatus, constants.FriendRequestCancelledStatus:
 			existing.Status = constants.FriendRequestPendingStatus
+			existing.Message = request.Message
 			existing.CreatedAt = request.CreatedAt
 			return nil
 		}
@@ -162,7 +163,7 @@ func newTestFriendSrv() *FriendSrv {
 func TestFriendServiceRejectsSelfRequest(t *testing.T) {
 	srv := newTestFriendSrv()
 
-	err := srv.CreateFriendRequest(context.Background(), 1, 1)
+	err := srv.CreateFriendRequest(context.Background(), 1, 1, "")
 
 	if err == nil || err.Error() != "不能添加自己为好友" {
 		t.Fatalf("expected self-request business error, got %v", err)
@@ -173,7 +174,7 @@ func TestFriendServiceCreatesRequestWithoutFriendRows(t *testing.T) {
 	srv := newTestFriendSrv()
 	ctx := context.Background()
 
-	if err := srv.CreateFriendRequest(ctx, 1, 2); err != nil {
+	if err := srv.CreateFriendRequest(ctx, 1, 2, ""); err != nil {
 		t.Fatalf("create request: %v", err)
 	}
 
@@ -189,17 +190,73 @@ func TestFriendServiceCreatesRequestWithoutFriendRows(t *testing.T) {
 	}
 }
 
+func TestFriendServiceCreatesRequestWithMessage(t *testing.T) {
+	srv := newTestFriendSrv()
+	ctx := context.Background()
+
+	if err := srv.CreateFriendRequest(ctx, 1, 2, "你好，我是 InnerG 用户"); err != nil {
+		t.Fatalf("create request: %v", err)
+	}
+
+	request, exist, err := srv.db.GetFriendRequest(ctx, 1, 2)
+	if err != nil {
+		t.Fatalf("get request: %v", err)
+	}
+	if !exist {
+		t.Fatal("expected request to exist")
+	}
+	if request.Message != "你好，我是 InnerG 用户" {
+		t.Fatalf("expected message to be stored, got %q", request.Message)
+	}
+}
+
+func TestFriendServiceRejectsTooLongRequestMessage(t *testing.T) {
+	srv := newTestFriendSrv()
+
+	err := srv.CreateFriendRequest(context.Background(), 1, 2, string(make([]rune, 101)))
+
+	if err == nil || err.Error() != "好友申请打招呼内容不能超过100个字符" {
+		t.Fatalf("expected message length error, got %v", err)
+	}
+}
+
 func TestFriendServiceRejectsDuplicatePendingRequest(t *testing.T) {
 	srv := newTestFriendSrv()
 	ctx := context.Background()
 
-	if err := srv.CreateFriendRequest(ctx, 1, 2); err != nil {
+	if err := srv.CreateFriendRequest(ctx, 1, 2, ""); err != nil {
 		t.Fatalf("create initial request: %v", err)
 	}
-	err := srv.CreateFriendRequest(ctx, 1, 2)
+	err := srv.CreateFriendRequest(ctx, 1, 2, "")
 
 	if err == nil || err.Error() != "好友请求已存在" {
 		t.Fatalf("expected duplicate pending error, got %v", err)
+	}
+}
+
+func TestFriendServiceResendRejectedRequestReplacesMessage(t *testing.T) {
+	srv := newTestFriendSrv()
+	ctx := context.Background()
+
+	if err := srv.CreateFriendRequest(ctx, 1, 2, "第一次申请"); err != nil {
+		t.Fatalf("create request: %v", err)
+	}
+	if err := srv.RejectFriendRequest(ctx, 2, 1); err != nil {
+		t.Fatalf("reject request: %v", err)
+	}
+	if err := srv.CreateFriendRequest(ctx, 1, 2, "第二次申请"); err != nil {
+		t.Fatalf("resend request: %v", err)
+	}
+
+	request, exist, err := srv.db.GetFriendRequest(ctx, 1, 2)
+	if err != nil {
+		t.Fatalf("get request: %v", err)
+	}
+	if !exist || request.Status != constants.FriendRequestPendingStatus {
+		t.Fatalf("expected pending request, got %+v", request)
+	}
+	if request.Message != "第二次申请" {
+		t.Fatalf("expected latest message, got %q", request.Message)
 	}
 }
 
@@ -207,7 +264,7 @@ func TestFriendServiceAcceptCreatesBidirectionalActiveFriendship(t *testing.T) {
 	srv := newTestFriendSrv()
 	ctx := context.Background()
 
-	if err := srv.CreateFriendRequest(ctx, 1, 2); err != nil {
+	if err := srv.CreateFriendRequest(ctx, 1, 2, ""); err != nil {
 		t.Fatalf("create request: %v", err)
 	}
 	if err := srv.AcceptFriendRequest(ctx, 2, 1); err != nil {
@@ -243,7 +300,7 @@ func TestFriendServiceHandleAcceptCreatesBidirectionalActiveFriendship(t *testin
 	srv := newTestFriendSrv()
 	ctx := context.Background()
 
-	if err := srv.CreateFriendRequest(ctx, 1, 2); err != nil {
+	if err := srv.CreateFriendRequest(ctx, 1, 2, ""); err != nil {
 		t.Fatalf("create request: %v", err)
 	}
 	if err := srv.HandleFriendRequest(ctx, 2, 1, "accept"); err != nil {
@@ -265,7 +322,7 @@ func TestFriendServiceRejectPendingRequestDoesNotCreateFriendship(t *testing.T) 
 	srv := newTestFriendSrv()
 	ctx := context.Background()
 
-	if err := srv.CreateFriendRequest(ctx, 1, 2); err != nil {
+	if err := srv.CreateFriendRequest(ctx, 1, 2, ""); err != nil {
 		t.Fatalf("create request: %v", err)
 	}
 	if err := srv.RejectFriendRequest(ctx, 2, 1); err != nil {
@@ -287,7 +344,7 @@ func TestFriendServiceHandleRejectDoesNotCreateFriendship(t *testing.T) {
 	srv := newTestFriendSrv()
 	ctx := context.Background()
 
-	if err := srv.CreateFriendRequest(ctx, 1, 2); err != nil {
+	if err := srv.CreateFriendRequest(ctx, 1, 2, ""); err != nil {
 		t.Fatalf("create request: %v", err)
 	}
 	if err := srv.HandleFriendRequest(ctx, 2, 1, "reject"); err != nil {
@@ -320,7 +377,7 @@ func TestFriendServiceDeleteAcceptedFriendshipMakesBothDirectionsNotFriends(t *t
 	srv := newTestFriendSrv()
 	ctx := context.Background()
 
-	if err := srv.CreateFriendRequest(ctx, 1, 2); err != nil {
+	if err := srv.CreateFriendRequest(ctx, 1, 2, ""); err != nil {
 		t.Fatalf("create request: %v", err)
 	}
 	if err := srv.AcceptFriendRequest(ctx, 2, 1); err != nil {

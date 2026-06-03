@@ -26,6 +26,7 @@ type FriendRequest struct {
 	FromUser  int64          `gorm:"type:bigint;not null;column:from_user;uniqueIndex:idx_from_to,priority:1;index:idx_from_status,priority:1" json:"from_user"`
 	ToUser    int64          `gorm:"type:bigint;not null;column:to_user;uniqueIndex:idx_from_to,priority:2;index:idx_to_status,priority:1" json:"to_user"`
 	Status    int8           `gorm:"type:tinyint;not null;default:1;column:status;index:idx_from_status,priority:2;index:idx_to_status,priority:2" json:"status"`
+	Message   string         `gorm:"type:varchar(100);not null;default:'';column:message" json:"message"`
 	CreatedAt int64          `gorm:"type:bigint;not null;column:created_at" json:"created_at"`
 	UpdatedAt time.Time      `gorm:"type:datetime;default:CURRENT_TIMESTAMP;autoUpdateTime;column:updated_at" json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`

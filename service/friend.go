@@ -32,9 +32,12 @@ func GetFriendSrv() *FriendSrv {
 	return FriendSrvIns
 }
 
-func (s *FriendSrv) CreateFriendRequest(ctx context.Context, userID, friendID int64) error {
+func (s *FriendSrv) CreateFriendRequest(ctx context.Context, userID, friendID int64, message string) error {
 	if userID == friendID {
 		return fmt.Errorf("不能添加自己为好友")
+	}
+	if len([]rune(message)) > 100 {
+		return fmt.Errorf("好友申请打招呼内容不能超过100个字符")
 	}
 
 	existing, exist, err := s.db.GetFriend(ctx, userID, friendID)
@@ -63,6 +66,7 @@ func (s *FriendSrv) CreateFriendRequest(ctx context.Context, userID, friendID in
 		FromUser:  userID,
 		ToUser:    friendID,
 		Status:    constants.FriendRequestPendingStatus,
+		Message:   message,
 		CreatedAt: time.Now().Unix(),
 	})
 }

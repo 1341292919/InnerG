@@ -21,7 +21,7 @@ func SendFriendRequest() gin.HandlerFunc {
 		}
 
 		userID := ctl.GetUserInfo(ctx.Request.Context()).Id
-		if err := service.GetFriendSrv().CreateFriendRequest(ctx.Request.Context(), userID, req.FriendID); err != nil {
+		if err := service.GetFriendSrv().CreateFriendRequest(ctx.Request.Context(), userID, req.FriendID, req.Message); err != nil {
 			pack.RespError(ctx, err)
 			return
 		}

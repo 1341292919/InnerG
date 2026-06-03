@@ -93,6 +93,7 @@ func (db *friendDB) CreateFriendRequest(ctx context.Context, request *model.Frie
 				}).
 				Updates(map[string]interface{}{
 					"status":     constants.FriendRequestPendingStatus,
+					"message":    request.Message,
 					"created_at": request.CreatedAt,
 				})
 			if result.Error != nil {
