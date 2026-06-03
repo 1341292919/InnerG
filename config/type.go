@@ -27,11 +27,12 @@ type redis struct {
 }
 
 type oss struct {
-	Bucket    string
-	AccessKey string
-	SecretKey string
-	Domain    string
-	Region    string
+	UserBucket string `mapstructure:"user-bucket"`
+	IMBucket   string `mapstructure:"im-bucket"`
+	AccessKey  string
+	SecretKey  string
+	Domain     string
+	Region     string
 }
 
 type smtp struct {

@@ -100,3 +100,35 @@ func GetWebSocketUnread() gin.HandlerFunc {
 		})
 	}
 }
+
+func UploadWebsocketImage() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		_, fileHeader, err := ctx.Request.FormFile("file")
+		if err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
+			return
+		}
+		url, err := service.NewWebSocketSrv().UploadImage(ctx.Request.Context(), fileHeader)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.RespData(ctx, types.WebsocketUploadResp{URL: url})
+	}
+}
+
+func UploadWebsocketVideo() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		_, fileHeader, err := ctx.Request.FormFile("file")
+		if err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
+			return
+		}
+		url, err := service.NewWebSocketSrv().UploadVideo(ctx.Request.Context(), fileHeader)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.RespData(ctx, types.WebsocketUploadResp{URL: url})
+	}
+}

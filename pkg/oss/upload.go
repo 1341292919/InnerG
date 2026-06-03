@@ -51,6 +51,39 @@ func IsImage(data *multipart.FileHeader) error {
 	return fmt.Errorf("file not image")
 }
 
+func IsVideo(data *multipart.FileHeader) error {
+	file, err := data.Open()
+	if err != nil {
+		return fmt.Errorf("open file error: %w", err)
+	}
+	defer file.Close()
+
+	buffer := make([]byte, 512)
+	n, err := file.Read(buffer)
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("read file error: %w", err)
+	}
+	if n < 12 {
+		return fmt.Errorf("file too small")
+	}
+
+	kind, _ := filetype.Match(buffer)
+	if kind == filetype.Unknown {
+		switch strings.ToLower(filepath.Ext(data.Filename)) {
+		case ".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v":
+			return nil
+		default:
+			return fmt.Errorf("file not video")
+		}
+	}
+
+	if kind.MIME.Type == "video" {
+		return nil
+	}
+
+	return fmt.Errorf("file not video")
+}
+
 func SaveFile(data *multipart.FileHeader, storePath, fileName string) (err error) {
 	if _, err := os.Stat(storePath); os.IsNotExist(err) {
 		err := os.MkdirAll(storePath, 0755) //0755 是一个八进制数，表示文件或目录的权限。它的二进制形式是 111 101 101，对应的权限
@@ -82,11 +115,11 @@ func SaveFile(data *multipart.FileHeader, storePath, fileName string) (err error
 	return nil
 }
 
-func Upload(localFile, filename, userid, origin string) (string, error) {
+func Upload(localFile, filename, userid, origin, bucket string) (string, error) {
 	key := fmt.Sprintf("%s/%s/%s", origin, userid, filename)
 
 	putPolicy := storage.PutPolicy{
-		Scope: config.Oss.Bucket,
+		Scope: bucket,
 	}
 
 	mac := auth.New(config.Oss.AccessKey, config.Oss.SecretKey)

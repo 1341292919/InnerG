@@ -60,6 +60,10 @@ func canChat(ctx context.Context, userID, targetID int64) error {
 	return nil
 }
 
+func shouldAcceptMessageType(messageType int8) bool {
+	return constants.IsValidMessageType(messageType)
+}
+
 func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Conn) {
 	uid := ctl.GetUserInfo(ctx).Id
 	conn := manager.UserConnection{
@@ -111,6 +115,10 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 			}
 			// 拒绝非本人信息
 			if m.UserID != uid {
+				continue
+			}
+			if !shouldAcceptMessageType(m.Type) {
+				logger.Log.Error("NewConnection:invalid message type: ", m.Type)
 				continue
 			}
 			if err = canChat(ctx, m.UserID, m.TargetID); err != nil {

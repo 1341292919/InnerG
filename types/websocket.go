@@ -29,3 +29,7 @@ type GetUnreadResp struct {
 	Messages []*MessageResp `json:"messages"`
 	Total    int            `json:"total"`
 }
+
+type WebsocketUploadResp struct {
+	URL string `json:"url"`
+}
