@@ -29,12 +29,12 @@ func (db *webSocketDB) InsertMessage(ctx context.Context, msg *model.Message) er
 	return nil
 }
 
-// GetOfflineMessages 查询to_user的离线消息（status = 0 未读）
+// GetOfflineMessages 查询 to_user 未确认接收的离线消息。
 func (db *webSocketDB) GetOfflineMessages(ctx context.Context, toUser int64, limit int) ([]*model.Message, error) {
 	var messages []*model.Message
 	err := db.client.WithContext(ctx).
 		Table(constants.MessageTableName).
-		Where("to_user = ? AND status = ?", toUser, constants.MessageUnPushedStatus).
+		Where("to_user = ? AND status IN ?", toUser, []int8{constants.MessageUnPushedStatus, constants.MessagePushedStatus}).
 		Order("created_at ASC").
 		Limit(limit).
 		Find(&messages).Error
@@ -89,12 +89,30 @@ func (db *webSocketDB) UpdateMessageStatus(ctx context.Context, msgID int64, sta
 
 // BatchUpdateMessageStatus 批量更新消息状态（标记已推送）
 func (db *webSocketDB) BatchUpdateMessageStatus(ctx context.Context, msgIDs []int64, status int8) error {
-	err := db.client.WithContext(ctx).
+	query := db.client.WithContext(ctx).
 		Table(constants.MessageTableName).
-		Where("id IN ?", msgIDs).
-		Update("status", status).Error
+		Where("id IN ?", msgIDs)
+	if status == constants.MessagePushedStatus {
+		query = query.Where("status IN ?", []int8{constants.MessageUnPushedStatus, constants.MessagePushedStatus})
+	}
+	err := query.Update("status", status).Error
 	if err != nil {
 		return errno.NewErr(errno.MySQLDBErrorCode, "BatchUpdateMessageStatus: "+err.Error())
+	}
+	return nil
+}
+
+// AckMessages 将当前用户已确认接收的消息推进到 received，重复 ACK 保持幂等。
+func (db *webSocketDB) AckMessages(ctx context.Context, toUser int64, msgIDs []string) error {
+	if len(msgIDs) == 0 {
+		return nil
+	}
+	err := db.client.WithContext(ctx).
+		Table(constants.MessageTableName).
+		Where("to_user = ? AND msg_id IN ? AND status IN ?", toUser, msgIDs, []int8{constants.MessageUnPushedStatus, constants.MessagePushedStatus}).
+		Update("status", constants.MessageReceivedStatus).Error
+	if err != nil {
+		return errno.NewErr(errno.MySQLDBErrorCode, "AckMessages: "+err.Error())
 	}
 	return nil
 }

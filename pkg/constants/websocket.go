@@ -7,6 +7,7 @@ const (
 const (
 	MessagePushedStatus   = 0
 	MessageUnPushedStatus = 1
+	MessageReceivedStatus = 3
 	MessageRecalledStatus = 2
 	MessageDeletedStatus  = 4
 )

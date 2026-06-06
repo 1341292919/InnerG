@@ -12,6 +12,7 @@ type WebSocketDB interface {
 	GetMessagesByTimeRange(ctx context.Context, user1, user2 int64, after, before int64, pageSize, pageNum int) ([]*model.Message, int64, error)
 	UpdateMessageStatus(ctx context.Context, msgID int64, status int8) error
 	BatchUpdateMessageStatus(ctx context.Context, msgIDs []int64, status int8) error
+	AckMessages(ctx context.Context, toUser int64, msgIDs []string) error
 }
 
 type WebSocketCache interface {

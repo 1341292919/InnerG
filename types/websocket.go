@@ -30,6 +30,10 @@ type GetUnreadResp struct {
 	Total    int            `json:"total"`
 }
 
+type AckMessagesReq struct {
+	MessageIDs []string `json:"message_ids" binding:"required,min=1"`
+}
+
 type WebsocketUploadResp struct {
 	URL string `json:"url"`
 }

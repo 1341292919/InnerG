@@ -37,6 +37,12 @@ func (ws *WebSocketSrv) GetUnreadMessages(ctx context.Context, userID int64) ([]
 	return websocketDao.Db.GetOfflineMessages(ctx, userID, constants.OnceOffMessagePushNum)
 }
 
+// AckMessages ack消息，避免连接波动导致消息实际上未被接收到
+func (ws *WebSocketSrv) AckMessages(ctx context.Context, userID int64, msgIDs []string) error {
+	websocketDao := dao.NewWebsocketDao()
+	return websocketDao.Db.AckMessages(ctx, userID, msgIDs)
+}
+
 func (ws *WebSocketSrv) UploadImage(ctx context.Context, file *multipart.FileHeader) (string, error) {
 	return ws.uploadFile(ctx, file, validateImageFile, constants.WebsocketImageFileNamePrefix, constants.WebsocketImageOssOrigin)
 }
