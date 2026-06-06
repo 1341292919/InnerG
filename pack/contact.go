@@ -3,6 +3,7 @@ package pack
 import (
 	"InnerG/dao/mongo/model"
 	"InnerG/types"
+	"strconv"
 )
 
 func BuildSessionList(session []*model.ChatSession) []*types.Session {
@@ -11,7 +12,7 @@ func BuildSessionList(session []*model.ChatSession) []*types.Session {
 			return &types.Session{
 				SessionId:     session.SessionID,
 				Title:         session.Title,
-				UserId:        session.UserID,
+				UserId:        strconv.FormatInt(session.UserID, 10),
 				Status:        session.Status,
 				LastMessage:   "暂无信息噢",
 				LastSpeakRole: "",
@@ -23,7 +24,7 @@ func BuildSessionList(session []*model.ChatSession) []*types.Session {
 		return &types.Session{
 			SessionId:     session.SessionID,
 			Title:         session.Title,
-			UserId:        session.UserID,
+			UserId:        strconv.FormatInt(session.UserID, 10),
 			Status:        session.Status,
 			LastMessage:   session.Messages[len(session.Messages)-1].Message,
 			MessageNum:    len(session.Messages),
@@ -43,7 +44,7 @@ func BuildSessionDetail(session *model.ChatSession) *types.SessionDetail {
 	return &types.SessionDetail{
 		SessionId:  session.SessionID,
 		Title:      session.Title,
-		UserId:     session.UserID,
+		UserId:     strconv.FormatInt(session.UserID, 10),
 		Status:     session.Status,
 		Messages:   buildMessageList(session.Messages),
 		MessageNum: len(session.Messages),

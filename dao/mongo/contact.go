@@ -69,7 +69,7 @@ func (m *contactMongoDB) InsertMessageToSession(ctx context.Context, sessionId s
 	return nil
 }
 
-func (m *contactMongoDB) GetSessionByUserId(ctx context.Context, userId string) ([]*model.ChatSession, int, error) {
+func (m *contactMongoDB) GetSessionByUserId(ctx context.Context, userId int64) ([]*model.ChatSession, int, error) {
 	filter := bson.M{
 		"userId": userId,
 		"status": bson.M{
@@ -119,7 +119,7 @@ func (m *contactMongoDB) DeleteSession(ctx context.Context, sessionId string) er
 	return err
 }
 
-func (m *contactMongoDB) GetSessionByUserIdWithPagination(ctx context.Context, userId string, pageNum, pageSize int) ([]*model.ChatSession, int, error) {
+func (m *contactMongoDB) GetSessionByUserIdWithPagination(ctx context.Context, userId int64, pageNum, pageSize int) ([]*model.ChatSession, int, error) {
 	filter := bson.M{
 		"userId": userId,
 		"status": bson.M{

@@ -8,7 +8,7 @@ import (
 type ChatSession struct {
 	ID        bson.ObjectID `bson:"_id,omitempty" json:"id"`    // MongoDB 自动生成的 ID
 	SessionID string        `bson:"sessionId" json:"sessionId"` // 会话ID，唯一索引
-	UserID    string        `bson:"userId" json:"userId"`       // 用户ID
+	UserID    int64         `bson:"userId" json:"userId"`       // 用户ID
 	Model     string        `bson:"model" json:"model"`         // 使用的模型 (如: gpt-4)
 	Title     string        `bson:"title" json:"title"`         // 会话标题
 	Status    string        `bson:"status" json:"status"`       // 状态 (active/archived/deleted)
