@@ -35,6 +35,15 @@ const (
 )
 
 const (
+	WebsocketConnectUserLimit = 10
+	WebsocketConnectIPLimit   = 30
+	WebsocketConnectWindow    = ONE_MINUTE
+
+	WebsocketMessageRateLimit = 100
+	WebsocketMessageRateBurst = 150
+)
+
+const (
 	WebsocketImageOssOrigin      = "websocket/image"
 	WebsocketVideoOssOrigin      = "websocket/video"
 	WebsocketImageFileNamePrefix = "ws_image"

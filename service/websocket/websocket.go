@@ -99,11 +99,21 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 	ws.manager.AddConnection(&conn)
 	defer ws.manager.RemoveConnection(&conn)
 
+	messageLimiter := newWebsocketMessageLimiter(constants.WebsocketMessageRateLimit, constants.WebsocketMessageRateBurst)
+	closeIfOverLimit := func(overLimit bool) bool {
+		if !overLimit {
+			return false
+		}
+		closeRateLimitedConnection(connect, uid)
+		return true
+	}
+
 	for {
 		t, body, err := connect.ReadMessage()
 		if err != nil { // 连接中断
 			break
 		}
+		messageOverLimit := !messageLimiter.Allow()
 		//  解析消息
 		switch t {
 		case websocket.TextMessage:
@@ -111,18 +121,30 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 			err = json.Unmarshal(body, &m)
 			if err != nil {
 				logger.Log.Error("NewConnection:ReadMessage: ", err)
+				if closeIfOverLimit(messageOverLimit) {
+					return
+				}
 				continue
 			}
 			// 拒绝非本人信息
 			if m.UserID != uid {
+				if closeIfOverLimit(messageOverLimit) {
+					return
+				}
 				continue
 			}
 			if !shouldAcceptMessageType(m.Type) {
 				logger.Log.Error("NewConnection:invalid message type: ", m.Type)
+				if closeIfOverLimit(messageOverLimit) {
+					return
+				}
 				continue
 			}
 			if err = canChat(ctx, m.UserID, m.TargetID); err != nil {
 				logger.Log.Error("NewConnection:canChat: ", err)
+				if closeIfOverLimit(messageOverLimit) {
+					return
+				}
 				continue
 			}
 			//  路由消息
@@ -131,10 +153,27 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 			if err != nil {
 				return
 			}
+			if closeIfOverLimit(messageOverLimit) {
+				return
+			}
 		default:
 			logger.Log.Error("NewConnection:ReadMessage: ", err)
+			if closeIfOverLimit(messageOverLimit) {
+				return
+			}
 		}
 	}
+}
+
+func closeRateLimitedConnection(connect *websocket.Conn, uid int64) {
+	if logger.Log != nil {
+		logger.Log.Errorf("websocket message rate limit exceeded: user_id=%d remote_addr=%s limit=%d/s burst=%d", uid, connect.RemoteAddr().String(), constants.WebsocketMessageRateLimit, constants.WebsocketMessageRateBurst)
+	}
+	_ = connect.WriteControl(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "message rate limit exceeded"),
+		time.Now().Add(time.Second),
+	)
 }
 
 // 从消息结构创建高频的特点 这里选择传入 message.Message 而不是 *message.Message

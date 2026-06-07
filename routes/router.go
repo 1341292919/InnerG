@@ -5,6 +5,7 @@ import (
 	"InnerG/middleware/confine"
 	"InnerG/middleware/guard"
 	"InnerG/middleware/metrics"
+	"InnerG/pkg/constants"
 	"InnerG/pkg/jwt"
 	"InnerG/pkg/logger"
 	"InnerG/types"
@@ -87,7 +88,10 @@ func NewRouter() *gin.Engine {
 			authed.GET("friend/list", api.ListFriends())
 			authed.GET("friend/requests", api.ListFriendRequests())
 
-			authed.GET("ws/connection", api.WebSocketConnectionHandler())
+			authed.GET("ws/connection", confine.Limit(
+				confine.Rule{Name: "ws_connect_user", Window: constants.WebsocketConnectWindow, Max: constants.WebsocketConnectUserLimit, Key: confine.ByUserID()},
+				confine.Rule{Name: "ws_connect_ip", Window: constants.WebsocketConnectWindow, Max: constants.WebsocketConnectIPLimit, Key: confine.ByIP()},
+			), api.WebSocketConnectionHandler())
 			authed.GET("ws/messages", api.GetWebSocketMessages())
 			authed.GET("ws/unread", api.GetWebSocketUnread())
 			authed.POST("ws/messages/ack", api.AckWebSocketMessages())

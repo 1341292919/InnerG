@@ -3,6 +3,7 @@ package confine
 import (
 	"InnerG/dao/cache"
 	"InnerG/pack"
+	"InnerG/pkg/ctl"
 	"InnerG/pkg/errno"
 	"InnerG/pkg/logger"
 	"bytes"
@@ -88,6 +89,16 @@ func (l *Limiter) Allow(ctx context.Context, key string, window time.Duration, m
 func ByIP() KeyFunc {
 	return func(c *gin.Context) string {
 		return c.ClientIP()
+	}
+}
+
+func ByUserID() KeyFunc {
+	return func(c *gin.Context) string {
+		u := ctl.GetUserInfo(c.Request.Context())
+		if u == nil {
+			return ""
+		}
+		return fmt.Sprintf("%d", u.Id)
 	}
 }
 
