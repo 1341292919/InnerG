@@ -3,6 +3,7 @@ package main
 import (
 	"InnerG/config"
 	"InnerG/dao"
+	"InnerG/middleware/guard"
 	"InnerG/middleware/metrics"
 	"InnerG/pkg/logger"
 	"InnerG/routes"
@@ -14,6 +15,7 @@ func loading() {
 	config.Init()
 	dao.Init()
 	metrics.Init()
+	guard.InitSentinel()
 	logger.InitLogger(config.Log.LogPath, config.Log.LogPrefix, config.Log.LogMaxDays)
 	logger.InitGinLogger(config.Log.LogPath, config.Log.GinLogPrefix, config.Log.LogMaxDays)
 }

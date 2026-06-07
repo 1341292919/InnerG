@@ -6,6 +6,8 @@ const (
 	AuthInvalidCode          = 30002 // 鉴权无效
 	AuthAccessExpiredCode    = 30003 // 访问令牌过期
 	AuthRefreshExpiredCode   = 30004 // 刷新令牌过期
+	RateLimitErrorCode       = 40001 // 请求频率限制
+	TrafficGuardErrorCode    = 40002 // 服务流量保护
 	InternalServiceErrorCode = 50000
 
 	// dao

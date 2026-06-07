@@ -9,4 +9,6 @@ var (
 	AuthAccessExpired    = NewErr(AuthAccessExpiredCode, "访问令牌过期")  // 访问令牌过期
 	AuthRefreshExpired   = NewErr(AuthRefreshExpiredCode, "刷新令牌过期") // 刷新令牌过期
 	AuthMissing          = NewErr(AuthInvalidCode, "缺失合法鉴权数据")      // 鉴权缺失，如访问令牌缺失
+	RateLimitExceeded    = NewErr(RateLimitErrorCode, "请求过于频繁，请稍后再试")
+	TrafficGuardExceeded = NewErr(TrafficGuardErrorCode, "服务器当前处于请求高峰，请稍后再试")
 )

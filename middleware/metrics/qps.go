@@ -1,7 +1,6 @@
 package metrics
 
 import (
-	"InnerG/config"
 	"InnerG/pkg/logger"
 	"context"
 	"fmt"
@@ -14,18 +13,7 @@ type QpsCounter struct {
 	c *redis.Client
 }
 
-// 另启redis客户端
-func NewQpsCounter() *QpsCounter {
-	rConfig := config.Redis
-	client := redis.NewClient(&redis.Options{
-		Addr:     rConfig.Addr,
-		Username: rConfig.Username,
-		Password: rConfig.Password,
-	})
-	_, err := client.Ping(context.Background()).Result()
-	if err != nil {
-		panic(err)
-	}
+func NewQpsCounter(client *redis.Client) *QpsCounter {
 	return &QpsCounter{c: client}
 }
 

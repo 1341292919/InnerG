@@ -9,5 +9,5 @@ const (
 )
 
 const (
-	EmailCodeKeyExpire = 10 * ONE_MINUTE
+	EmailCodeKeyExpire = 1 * ONE_MINUTE
 )

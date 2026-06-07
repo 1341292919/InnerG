@@ -36,6 +36,9 @@ func GetUserSrv() *UserSrv {
 func (s *UserSrv) GetEmailCode(ctx context.Context, req *types.UserGetEmailCodeReq) error {
 	userDao := dao.NewUserDao(ctx)
 	emailCodeKey := fmt.Sprintf("emailCode:%s", req.Email)
+	if userDao.Cache.IsKeyExist(ctx, emailCodeKey) {
+		return fmt.Errorf("申请重发时间过短，请稍后再试")
+	}
 	code := utils.GenerateRandomCode(constants.CommonEmailCodeLength)
 	err := userDao.Cache.SetEmailCode(ctx, emailCodeKey, code)
 	if err != nil {

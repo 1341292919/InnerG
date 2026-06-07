@@ -1,32 +1,32 @@
 package types
 
 type UserGetEmailCodeReq struct {
-	Email string `form:"email" binding:"required"`
+	Email string `form:"email" json:"email" binding:"required"`
 }
 
 type UserVerifyEmailAndRegisterReq struct {
-	Email      string `form:"email" binding:"required"`
-	VerifyCode string `form:"verify_code" binding:"required"`
-	Password   string `form:"password" binding:"required"`
+	Email      string `form:"email" json:"email" binding:"required"`
+	VerifyCode string `form:"verify_code" json:"verify_code" binding:"required"`
+	Password   string `form:"password" json:"password" binding:"required"`
 }
 
 type UserLoginReq struct {
-	Account  string `form:"account" binding:"required"`
-	Password string `form:"password" binding:"required"`
+	Account  string `form:"account" json:"account" binding:"required"`
+	Password string `form:"password" json:"password" binding:"required"`
 }
 
 type UserVerifyEmailAndLoginReq struct {
-	Email      string `form:"email" binding:"required"`
-	VerifyCode string `form:"verify_code" binding:"required"`
+	Email      string `form:"email" json:"email" binding:"required"`
+	VerifyCode string `form:"verify_code" json:"verify_code" binding:"required"`
 }
 type UpdateUserAccountReq struct {
-	Account string `form:"account" binding:"required"`
+	Account string `form:"account" json:"account" binding:"required"`
 }
 type UpdateUserNameReq struct {
-	UserName string `form:"username" binding:"required"`
+	UserName string `form:"username" json:"username" binding:"required"`
 }
 type UpdateUserGenderReq struct {
-	Gender string `form:"gender" binding:"required"`
+	Gender string `form:"gender" json:"gender" binding:"required"`
 }
 type UpdateUserAvatarReq struct {
 }

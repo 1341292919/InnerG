@@ -25,6 +25,10 @@ func InitCache() {
 	_Ca = client
 }
 
+func GetRedisClient() *redis.Client {
+	return _Ca
+}
+
 func NewUserRedisClient() _interface.UserCache {
 	return NewUserCache(_Ca)
 }

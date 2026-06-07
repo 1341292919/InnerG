@@ -1,6 +1,8 @@
 package metrics
 
 import (
+	"InnerG/dao/cache"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"time"
@@ -29,7 +31,7 @@ func StartMetricsUpdater() {
 }
 
 func Init() {
-	qpsCounter = NewQpsCounter()
+	qpsCounter = NewQpsCounter(cache.GetRedisClient())
 	qpsGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "gin_qps_current",
 		Help: "Current QPS (requests per second)",
