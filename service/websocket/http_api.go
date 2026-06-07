@@ -44,10 +44,16 @@ func (ws *WebSocketSrv) AckMessages(ctx context.Context, userID int64, msgIDs []
 }
 
 func (ws *WebSocketSrv) UploadImage(ctx context.Context, file *multipart.FileHeader) (string, error) {
+	if err := oss.CheckFileSize(file, constants.WebsocketImageMaxSize); err != nil {
+		return "", fmt.Errorf("check file size failed: %w", err)
+	}
 	return ws.uploadFile(ctx, file, validateImageFile, constants.WebsocketImageFileNamePrefix, constants.WebsocketImageOssOrigin)
 }
 
 func (ws *WebSocketSrv) UploadVideo(ctx context.Context, file *multipart.FileHeader) (string, error) {
+	if err := oss.CheckFileSize(file, constants.WebsocketVideoMaxSize); err != nil {
+		return "", fmt.Errorf("check file size failed: %w", err)
+	}
 	return ws.uploadFile(ctx, file, validateVideoFile, constants.WebsocketVideoFileNamePrefix, constants.WebsocketVideoOssOrigin)
 }
 

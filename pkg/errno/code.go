@@ -8,6 +8,7 @@ const (
 	AuthRefreshExpiredCode   = 30004 // 刷新令牌过期
 	RateLimitErrorCode       = 40001 // 请求频率限制
 	TrafficGuardErrorCode    = 40002 // 服务流量保护
+	FileTooLargeCode         = 40003 // 上传文件过大
 	InternalServiceErrorCode = 50000
 
 	// dao

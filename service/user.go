@@ -218,6 +218,10 @@ func (s *UserSrv) LogOut(ctx context.Context) error {
 func (s *UserSrv) UpdateUserAvatar(ctx context.Context, file *multipart.FileHeader) (string, error) {
 	u := ctl.GetUserInfo(ctx)
 	userDao := dao.NewUserDao(ctx)
+	if err := oss.CheckFileSize(file, constants.UserAvatarMaxSize); err != nil {
+		logger.Log.Error("UpdateUserAvatar: ", errno.ConvertErr(err).Error())
+		return "", fmt.Errorf("check file size failed: %w", err)
+	}
 	err := oss.IsImage(file)
 	if err != nil {
 		logger.Log.Error("UpdateUserAvatar: ", errno.ConvertErr(err).Error())

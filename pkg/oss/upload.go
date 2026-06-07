@@ -2,6 +2,7 @@ package oss
 
 import (
 	"InnerG/config"
+	"InnerG/pkg/errno"
 	"context"
 	"fmt"
 	"github.com/h2non/filetype"
@@ -13,6 +14,16 @@ import (
 	"path/filepath"
 	"strings"
 )
+
+func CheckFileSize(data *multipart.FileHeader, maxSize int64) error {
+	if data == nil {
+		return fmt.Errorf("file is nil")
+	}
+	if data.Size > maxSize {
+		return errno.FileTooLarge
+	}
+	return nil
+}
 
 func IsImage(data *multipart.FileHeader) error {
 	file, err := data.Open()

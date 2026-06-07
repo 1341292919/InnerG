@@ -11,4 +11,5 @@ var (
 	AuthMissing          = NewErr(AuthInvalidCode, "缺失合法鉴权数据")      // 鉴权缺失，如访问令牌缺失
 	RateLimitExceeded    = NewErr(RateLimitErrorCode, "请求过于频繁，请稍后再试")
 	TrafficGuardExceeded = NewErr(TrafficGuardErrorCode, "服务器当前处于请求高峰，请稍后再试")
+	FileTooLarge         = NewErr(FileTooLargeCode, "上传文件过大")
 )
