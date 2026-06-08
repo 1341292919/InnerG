@@ -118,6 +118,28 @@ func (db *userDB) UpdateUserGender(ctx context.Context, gender string, id int64)
 	return nil
 }
 
+func (db *userDB) UpdateUserSignature(ctx context.Context, signature string, id int64) error {
+	if err := db.client.WithContext(ctx).
+		Table(constants.UserTableName).
+		Where("id = ?", id).
+		Update("signature", signature).
+		Error; err != nil {
+		return errno.NewErr(errno.MySQLDBErrorCode, "UpdateUserSignature: "+err.Error())
+	}
+	return nil
+}
+
+func (db *userDB) UpdateUserProfilePublic(ctx context.Context, profilePublic int8, id int64) error {
+	if err := db.client.WithContext(ctx).
+		Table(constants.UserTableName).
+		Where("id = ?", id).
+		Update("profile_public", profilePublic).
+		Error; err != nil {
+		return errno.NewErr(errno.MySQLDBErrorCode, "UpdateUserProfilePublic: "+err.Error())
+	}
+	return nil
+}
+
 func (db *userDB) UpdateUserAvatar(ctx context.Context, id, avatarUrl string) error {
 	if err := db.client.WithContext(ctx).
 		Table(constants.UserTableName).

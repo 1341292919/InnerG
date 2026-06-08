@@ -14,6 +14,8 @@ type UserDB interface {
 	UpdateUserAccount(ctx context.Context, account string, id int64) error
 	UpdateUserName(ctx context.Context, userName string, id int64) error
 	UpdateUserGender(ctx context.Context, gender string, id int64) error
+	UpdateUserSignature(ctx context.Context, signature string, id int64) error
+	UpdateUserProfilePublic(ctx context.Context, profilePublic int8, id int64) error
 	UpdateUserAvatar(ctx context.Context, id, avatarUrl string) error
 }
 type UserCache interface {

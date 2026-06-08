@@ -28,17 +28,41 @@ type UpdateUserNameReq struct {
 type UpdateUserGenderReq struct {
 	Gender string `form:"gender" json:"gender" binding:"required"`
 }
+type UpdateUserSignatureReq struct {
+	Signature string `form:"signature" json:"signature"`
+}
+type UpdateUserProfilePublicReq struct {
+	ProfilePublic *int8 `form:"profile_public" json:"profile_public" binding:"required,oneof=0 1"`
+}
+type GetUserInfoByIDReq struct {
+	UserID int64 `form:"user_id" json:"user_id" binding:"required"`
+}
 type UpdateUserAvatarReq struct {
 }
 type UpdateUserAvatarResp struct {
 	AvatarUrl string
 }
 type User struct {
+	Id            string
+	Email         string
+	UserName      string
+	Account       string
+	Avatar        string
+	Signature     string
+	ProfilePublic int8
+	Gender        int
+	RoleType      int
+	CreatedAt     int64
+	UpdatedAT     int64
+}
+
+type UserProfile struct {
 	Id        string
-	Email     string
 	UserName  string
 	Account   string
 	Avatar    string
+	Signature string
+	Protected bool
 	Gender    int
 	RoleType  int
 	CreatedAt int64

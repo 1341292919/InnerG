@@ -76,8 +76,9 @@ func (s *UserSrv) VerifyEmailAndRegister(ctx context.Context, req *types.UserVer
 
 	// 插入数据库
 	newUser := &model.User{
-		Email:  req.Email,
-		Status: model.Active,
+		Email:         req.Email,
+		ProfilePublic: 1,
+		Status:        model.Active,
 	}
 	newUser.SetDefaultAvatar()
 	if err = newUser.SetPassword(req.Password); err != nil {
@@ -152,6 +153,33 @@ func (s *UserSrv) GetUserInfo(ctx context.Context) (*model.User, error) {
 	return user, nil
 }
 
+func (s *UserSrv) GetUserInfoByID(ctx context.Context, userID int64) (*model.User, bool, error) {
+	u := ctl.GetUserInfo(ctx)
+	userDao := dao.NewUserDao(ctx)
+	user, exist, err := userDao.Db.IsUserExistById(ctx, userID)
+	if err != nil {
+		logger.Log.Error("GetUserInfoByID: ", errno.ConvertErr(err).Error())
+		return nil, false, err
+	}
+	if !exist {
+		return nil, false, fmt.Errorf("用户不存在")
+	}
+	if u.Id == userID || user.ProfilePublic == 1 {
+		return user, false, nil
+	}
+
+	friendDao := dao.NewFriendDao(ctx)
+	isFriend, err := friendDao.Db.IsFriend(ctx, u.Id, userID)
+	if err != nil {
+		logger.Log.Error("GetUserInfoByID: ", errno.ConvertErr(err).Error())
+		return nil, false, err
+	}
+	if !isFriend {
+		return user, true, nil
+	}
+	return user, false, nil
+}
+
 func (s *UserSrv) UpdateUserAccount(ctx context.Context, account string) error {
 	u := ctl.GetUserInfo(ctx)
 	userDao := dao.NewUserDao(ctx)
@@ -207,6 +235,42 @@ func (s *UserSrv) UpdateUserGender(ctx context.Context, gender string) error {
 		return fmt.Errorf("gender 参数错误，仅支持 0 或 1")
 	}
 	return userDao.Db.UpdateUserGender(ctx, gender, u.Id)
+}
+
+func (s *UserSrv) UpdateUserSignature(ctx context.Context, signature string) error {
+	u := ctl.GetUserInfo(ctx)
+	userDao := dao.NewUserDao(ctx)
+	_, exist, err := userDao.Db.IsUserExistById(ctx, u.Id)
+	if err != nil {
+		logger.Log.Error("UpdateUserSignature: ", errno.ConvertErr(err).Error())
+		return err
+	}
+	if !exist {
+		return fmt.Errorf("用户不存在")
+	}
+
+	signature = strings.TrimSpace(signature)
+	if len([]rune(signature)) > 255 {
+		return fmt.Errorf("个性签名最多支持255个字符")
+	}
+	return userDao.Db.UpdateUserSignature(ctx, signature, u.Id)
+}
+
+func (s *UserSrv) UpdateUserProfilePublic(ctx context.Context, profilePublic int8) error {
+	u := ctl.GetUserInfo(ctx)
+	userDao := dao.NewUserDao(ctx)
+	_, exist, err := userDao.Db.IsUserExistById(ctx, u.Id)
+	if err != nil {
+		logger.Log.Error("UpdateUserProfilePublic: ", errno.ConvertErr(err).Error())
+		return err
+	}
+	if !exist {
+		return fmt.Errorf("用户不存在")
+	}
+	if profilePublic != 0 && profilePublic != 1 {
+		return fmt.Errorf("profile_public 参数错误，仅支持 0 或 1")
+	}
+	return userDao.Db.UpdateUserProfilePublic(ctx, profilePublic, u.Id)
 }
 
 func (s *UserSrv) LogOut(ctx context.Context) error {

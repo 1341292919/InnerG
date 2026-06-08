@@ -47,9 +47,9 @@ func NewRouter() *gin.Engine {
 			confine.Rule{Name: "register_ip_email", Window: 5 * time.Minute, Max: 5, Key: confine.Compose(confine.ByIP(), registerEmailKey)},
 		), api.UserVerifyEmailAndRegister())
 		v1.POST("user/login", confine.Limit(
-			confine.Rule{Name: "login_ip", Window: time.Minute, Max: 10, Key: confine.ByIP()},
-			confine.Rule{Name: "login_account", Window: 5 * time.Minute, Max: 5, Key: loginAccountKey},
-			confine.Rule{Name: "login_ip_account", Window: 5 * time.Minute, Max: 5, Key: confine.Compose(confine.ByIP(), loginAccountKey)},
+			confine.Rule{Name: "login_ip", Window: time.Minute, Max: 100, Key: confine.ByIP()},
+			confine.Rule{Name: "login_account", Window: 1 * time.Minute, Max: 50, Key: loginAccountKey},
+			confine.Rule{Name: "login_ip_account", Window: 1 * time.Minute, Max: 500, Key: confine.Compose(confine.ByIP(), loginAccountKey)},
 		), api.UserLogin())
 		v1.POST("user/email/login", confine.Limit(
 			confine.Rule{Name: "email_login_ip", Window: time.Minute, Max: 10, Key: confine.ByIP()},
@@ -62,9 +62,12 @@ func NewRouter() *gin.Engine {
 		{
 			// 用户部分
 			authed.GET("user/info", api.GetUserInfo())
+			authed.GET("user/info/by-id", api.GetUserInfoByID())
 			authed.POST("user/update/account", api.UserUpdateAccount())
 			authed.POST("user/update/username", api.UserUpdateUserName())
 			authed.POST("user/update/gender", api.UserUpdateGender())
+			authed.POST("user/update/signature", api.UserUpdateSignature())
+			authed.POST("user/update/profile-public", api.UserUpdateProfilePublic())
 			authed.POST("user/logout", api.UserLogOut())
 			authed.POST("user/avatar", api.UserUploadAvatar())
 

@@ -5,6 +5,8 @@ CREATE TABLE InnerG.user
     username VARCHAR(64) NOT NULL,
     email VARCHAR(128) NULL,
     avatar VARCHAR(512) NULL,
+    signature VARCHAR(255) NOT NULL DEFAULT '' COMMENT '个性签名',
+    profile_public TINYINT NOT NULL DEFAULT 1 COMMENT '是否公开个人资料：0-否，1-是',
     status TINYINT DEFAULT 1 NOT NULL,
     role_type TINYINT NOT NULL DEFAULT 1 COMMENT '角色类型：0-管理员，1-普通用户',
     password_hash VARCHAR(255) NOT NULL,

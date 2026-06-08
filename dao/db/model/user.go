@@ -8,14 +8,16 @@ import (
 
 type User struct {
 	gorm.Model
-	Account      sql.NullString
-	Username     string
-	Email        string
-	Avatar       string
-	Status       int8
-	RoleType     int8
-	Gender       int8
-	PasswordHash string
+	Account       sql.NullString
+	Username      string
+	Email         string
+	Avatar        string
+	Signature     string
+	ProfilePublic int8 `gorm:"column:profile_public;default:1"`
+	Status        int8
+	RoleType      int8
+	Gender        int8
+	PasswordHash  string
 }
 
 const (

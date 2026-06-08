@@ -106,6 +106,27 @@ func GetUserInfo() gin.HandlerFunc {
 	}
 }
 
+func GetUserInfoByID() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var req types.GetUserInfoByIDReq
+		if err := ctx.ShouldBind(&req); err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
+			return
+		}
+		l := service.GetUserSrv()
+		u, protected, err := l.GetUserInfoByID(ctx.Request.Context(), req.UserID)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		if protected {
+			pack.RespData(ctx, pack.BuildProtectedUserProfile(u))
+			return
+		}
+		pack.RespData(ctx, pack.BuildUserProfile(u))
+	}
+}
+
 func UserUpdateAccount() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req types.UpdateUserAccountReq
@@ -149,6 +170,40 @@ func UserUpdateGender() gin.HandlerFunc {
 		}
 		l := service.GetUserSrv()
 		err := l.UpdateUserGender(ctx.Request.Context(), req.Gender)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.RespSuccess(ctx)
+	}
+}
+
+func UserUpdateSignature() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var req types.UpdateUserSignatureReq
+		if err := ctx.ShouldBind(&req); err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
+			return
+		}
+		l := service.GetUserSrv()
+		err := l.UpdateUserSignature(ctx.Request.Context(), req.Signature)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.RespSuccess(ctx)
+	}
+}
+
+func UserUpdateProfilePublic() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var req types.UpdateUserProfilePublicReq
+		if err := ctx.ShouldBind(&req); err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
+			return
+		}
+		l := service.GetUserSrv()
+		err := l.UpdateUserProfilePublic(ctx.Request.Context(), *req.ProfilePublic)
 		if err != nil {
 			pack.RespError(ctx, err)
 			return
