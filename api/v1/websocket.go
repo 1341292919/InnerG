@@ -2,6 +2,7 @@ package v1
 
 import (
 	"InnerG/pack"
+	"InnerG/pkg/constants"
 	"InnerG/pkg/ctl"
 	"InnerG/pkg/errno"
 	service "InnerG/service/websocket"
@@ -116,6 +117,21 @@ func AckWebSocketMessages() gin.HandlerFunc {
 		}
 
 		pack.RespSuccess(ctx)
+	}
+}
+
+func CreateWebSocketTicket() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		uid := ctl.GetUserInfo(ctx.Request.Context()).Id
+		ticket, err := service.NewWebSocketSrv().CreateTicket(ctx.Request.Context(), uid)
+		if err != nil {
+			pack.RespError(ctx, err)
+			return
+		}
+		pack.RespData(ctx, types.CreateWebSocketTicketResp{
+			Ticket:    ticket,
+			ExpiresIn: int64(constants.WebsocketTicketExpire.Seconds()),
+		})
 	}
 }
 

@@ -31,7 +31,9 @@ const (
 )
 
 const (
-	WebsocketKeyExpire = 24 * ONE_HOUR
+	WebsocketKeyExpire       = 24 * ONE_HOUR
+	WebsocketTicketExpire    = 30 * ONE_SECOND
+	WebsocketTicketKeyPrefix = "ws:ticket:"
 )
 
 const (

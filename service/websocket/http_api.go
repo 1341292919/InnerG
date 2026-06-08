@@ -8,6 +8,8 @@ import (
 	"InnerG/pkg/ctl"
 	"InnerG/pkg/oss"
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"mime/multipart"
 	"path/filepath"
@@ -43,6 +45,31 @@ func (ws *WebSocketSrv) AckMessages(ctx context.Context, userID int64, msgIDs []
 	return websocketDao.Db.AckMessages(ctx, userID, msgIDs)
 }
 
+func (ws *WebSocketSrv) CreateTicket(ctx context.Context, userID int64) (string, error) {
+	ticket, err := newWebSocketTicket()
+	if err != nil {
+		return "", err
+	}
+	websocketDao := dao.NewWebsocketDao()
+	if err := websocketDao.Cache.SetTicket(ctx, websocketTicketKey(ticket), strconv.FormatInt(userID, 10), constants.WebsocketTicketExpire); err != nil {
+		return "", err
+	}
+	return ticket, nil
+}
+
+func (ws *WebSocketSrv) ConsumeTicket(ctx context.Context, ticket string) (int64, error) {
+	websocketDao := dao.NewWebsocketDao()
+	userIDStr, err := websocketDao.Cache.ConsumeTicket(ctx, websocketTicketKey(ticket))
+	if err != nil {
+		return 0, err
+	}
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse websocket ticket user id: %w", err)
+	}
+	return userID, nil
+}
+
 func (ws *WebSocketSrv) UploadImage(ctx context.Context, file *multipart.FileHeader) (string, error) {
 	if err := oss.CheckFileSize(file, constants.WebsocketImageMaxSize); err != nil {
 		return "", fmt.Errorf("check file size failed: %w", err)
@@ -68,4 +95,16 @@ func (ws *WebSocketSrv) uploadFile(ctx context.Context, file *multipart.FileHead
 	}
 	filePath := filepath.Join(constants.StorePath, fileName)
 	return uploadLocalFile(filePath, fileName, strconv.FormatInt(uid, 10), origin, getIMBucket())
+}
+
+func websocketTicketKey(ticket string) string {
+	return constants.WebsocketTicketKeyPrefix + ticket
+}
+
+func newWebSocketTicket() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return "ws_" + base64.RawURLEncoding.EncodeToString(b), nil
 }

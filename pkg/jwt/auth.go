@@ -6,6 +6,7 @@ import (
 	"InnerG/pkg/constants"
 	"InnerG/pkg/ctl"
 	"InnerG/pkg/errno"
+	service "InnerG/service/websocket"
 	"context"
 	"fmt"
 
@@ -29,6 +30,27 @@ func Auth() gin.HandlerFunc {
 		}
 
 		ctx.Request = ctx.Request.WithContext(ctl.NewContext(ctx.Request.Context(), &ctl.UserInfo{Id: userId, Token: token}))
+		ctx.Next()
+	}
+}
+
+func WSTicketAuth() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ticket := ctx.Query("ticket")
+		if ticket == "" {
+			pack.RespError(ctx, errno.AuthMissing)
+			ctx.Abort()
+			return
+		}
+
+		userID, err := service.NewWebSocketSrv().ConsumeTicket(ctx.Request.Context(), ticket)
+		if err != nil {
+			pack.RespError(ctx, err)
+			ctx.Abort()
+			return
+		}
+
+		ctx.Request = ctx.Request.WithContext(ctl.NewContext(ctx.Request.Context(), &ctl.UserInfo{Id: userID}))
 		ctx.Next()
 	}
 }

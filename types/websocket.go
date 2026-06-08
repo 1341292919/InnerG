@@ -37,3 +37,8 @@ type AckMessagesReq struct {
 type WebsocketUploadResp struct {
 	URL string `json:"url"`
 }
+
+type CreateWebSocketTicketResp struct {
+	Ticket    string `json:"ticket"`
+	ExpiresIn int64  `json:"expires_in"`
+}

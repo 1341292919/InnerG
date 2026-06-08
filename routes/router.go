@@ -88,15 +88,21 @@ func NewRouter() *gin.Engine {
 			authed.GET("friend/list", api.ListFriends())
 			authed.GET("friend/requests", api.ListFriendRequests())
 
-			authed.GET("ws/connection", confine.Limit(
-				confine.Rule{Name: "ws_connect_user", Window: constants.WebsocketConnectWindow, Max: constants.WebsocketConnectUserLimit, Key: confine.ByUserID()},
-				confine.Rule{Name: "ws_connect_ip", Window: constants.WebsocketConnectWindow, Max: constants.WebsocketConnectIPLimit, Key: confine.ByIP()},
-			), api.WebSocketConnectionHandler())
+			authed.POST("ws/ticket", api.CreateWebSocketTicket())
 			authed.GET("ws/messages", api.GetWebSocketMessages())
 			authed.GET("ws/unread", api.GetWebSocketUnread())
 			authed.POST("ws/messages/ack", api.AckWebSocketMessages())
 			authed.POST("ws/upload/image", api.UploadWebsocketImage())
 			authed.POST("ws/upload/video", api.UploadWebsocketVideo())
+		}
+
+		ws := v1.Group("ws")
+		ws.Use(jwt.WSTicketAuth())
+		{
+			ws.GET("connection", confine.Limit(
+				confine.Rule{Name: "ws_connect_user", Window: constants.WebsocketConnectWindow, Max: constants.WebsocketConnectUserLimit, Key: confine.ByUserID()},
+				confine.Rule{Name: "ws_connect_ip", Window: constants.WebsocketConnectWindow, Max: constants.WebsocketConnectIPLimit, Key: confine.ByIP()},
+			), api.WebSocketConnectionHandler())
 		}
 	}
 	return r

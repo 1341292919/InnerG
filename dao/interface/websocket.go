@@ -4,6 +4,7 @@ import (
 	"InnerG/dao/db/model"
 	"InnerG/service/websocket/message"
 	"context"
+	"time"
 )
 
 type WebSocketDB interface {
@@ -27,4 +28,10 @@ type WebSocketCache interface {
 
 	// DeleteOfflineMessages 删除用户的离线消息 key
 	DeleteOfflineMessages(ctx context.Context, key string) error
+
+	// SetTicket 保存 WebSocket 一次性连接 ticket
+	SetTicket(ctx context.Context, key, userID string, ttl time.Duration) error
+
+	// ConsumeTicket 原子读取并删除 WebSocket 一次性连接 ticket
+	ConsumeTicket(ctx context.Context, key string) (string, error)
 }

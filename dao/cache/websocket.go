@@ -7,6 +7,7 @@ import (
 	"InnerG/service/websocket/message"
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/redis/go-redis/v9"
@@ -73,4 +74,30 @@ func (wc *websocketCache) GetOfflineMessages(ctx context.Context, key string) ([
 // DeleteOfflineMessages 删除用户的离线消息 key
 func (wc *websocketCache) DeleteOfflineMessages(ctx context.Context, key string) error {
 	return wc.client.Del(ctx, key).Err()
+}
+
+func (wc *websocketCache) SetTicket(ctx context.Context, key, userID string, ttl time.Duration) error {
+	if err := wc.client.Set(ctx, key, userID, ttl).Err(); err != nil {
+		return errno.NewErr(errno.RedisDBErrorCode, fmt.Sprintf("SetTicket Set: %v", err))
+	}
+	return nil
+}
+
+func (wc *websocketCache) ConsumeTicket(ctx context.Context, key string) (string, error) {
+	const script = `
+local value = redis.call("GET", KEYS[1])
+if not value then
+    return nil
+end
+redis.call("DEL", KEYS[1])
+return value
+`
+	value, err := wc.client.Eval(ctx, script, []string{key}).Text()
+	if err == redis.Nil {
+		return "", errno.AuthInvalid.WithMessage("invalid websocket ticket")
+	}
+	if err != nil {
+		return "", errno.NewErr(errno.RedisDBErrorCode, fmt.Sprintf("ConsumeTicket Eval: %v", err))
+	}
+	return value, nil
 }
