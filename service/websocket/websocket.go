@@ -27,9 +27,9 @@ var isFriend = func(ctx context.Context, userID, targetID int64) (bool, error) {
 }
 
 type WebSocketSrv struct {
-	manager *manager.ConnectionManager
-	// 消息队列
-	sender *rabbitmq.Producer
+	manager      *manager.ConnectionManager
+	groupManager *GroupManager
+	sender       *rabbitmq.Producer
 }
 
 func NewWebSocketSrv() *WebSocketSrv {
@@ -42,8 +42,9 @@ func NewWebSocketSrv() *WebSocketSrv {
 			panic(fmt.Errorf("init WebSocketService: %w", err))
 		}
 		WebSocketSrvIns = &WebSocketSrv{
-			manager: manager.NewConnectionManager(config.Service.WebsocketShardNum),
-			sender:  producer,
+			manager:      manager.NewConnectionManager(config.Service.WebsocketShardNum),
+			groupManager: NewGroupManager(),
+			sender:       producer,
 		}
 	})
 	return WebSocketSrvIns
@@ -72,7 +73,7 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 		LastActive: time.Now(),
 	}
 
-	// 先推送离线消息，再注册连接，确保消息顺序：离线 → 实时
+	// 先推送离线消息，再注册连接，确保消息顺序：离线 -> 实时
 	websocketDao := dao.NewWebsocketDao()
 	mList, err := websocketDao.Db.GetOfflineMessages(ctx, uid, constants.OnceOffMessagePushNum)
 	if err != nil {
@@ -95,9 +96,20 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 		}
 	}
 
+	groupDao := dao.NewGroupDao()
+	groupIDs, err := groupDao.Db.GetUserGroupIDs(ctx, uid)
+	if err != nil {
+		logger.Log.Errorf("Failed to get user group IDs: %v", err)
+	} else if len(groupIDs) > 0 {
+		ws.groupManager.SubscribeUser(uid, groupIDs)
+	}
+
 	// 离线消息推完后再注册，后续 RouteMessage 推送的实时消息都排在后面
 	ws.manager.AddConnection(&conn)
-	defer ws.manager.RemoveConnection(&conn)
+	defer func() {
+		ws.manager.RemoveConnection(&conn)
+		ws.groupManager.UnsubscribeUser(uid)
+	}()
 
 	messageLimiter := newWebsocketMessageLimiter(constants.WebsocketMessageRateLimit, constants.WebsocketMessageRateBurst)
 	closeIfOverLimit := func(overLimit bool) bool {
@@ -110,11 +122,10 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 
 	for {
 		t, body, err := connect.ReadMessage()
-		if err != nil { // 连接中断
+		if err != nil {
 			break
 		}
 		messageOverLimit := !messageLimiter.Allow()
-		//  解析消息
 		switch t {
 		case websocket.TextMessage:
 			var m message.Message
@@ -126,7 +137,6 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 				}
 				continue
 			}
-			// 拒绝非本人信息
 			if m.UserID != uid {
 				if closeIfOverLimit(messageOverLimit) {
 					return
@@ -140,19 +150,40 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 				}
 				continue
 			}
-			if err = canChat(ctx, m.UserID, m.TargetID); err != nil {
-				logger.Log.Error("NewConnection:canChat: ", err)
-				if closeIfOverLimit(messageOverLimit) {
+
+			if m.ChatType == constants.ChatTypeGroup {
+				groupMsg := &message.GroupMessage{
+					ID:        m.ID,
+					UserID:    m.UserID,
+					GroupID:   m.TargetID,
+					Content:   m.Content,
+					Type:      m.Type,
+					Status:    m.Status,
+					ChatType:  m.ChatType,
+					CreatedAt: m.CreatedAt,
+				}
+				err = ws.RouteGroupMessage(ctx, groupMsg)
+				if err != nil {
+					logger.Log.Error("NewConnection:RouteGroupMessage: ", err)
+					if closeIfOverLimit(messageOverLimit) {
+						return
+					}
+					continue
+				}
+			} else {
+				if err = canChat(ctx, m.UserID, m.TargetID); err != nil {
+					logger.Log.Error("NewConnection:canChat: ", err)
+					if closeIfOverLimit(messageOverLimit) {
+						return
+					}
+					continue
+				}
+				err = ws.RouteMessage(m)
+				if err != nil {
 					return
 				}
-				continue
 			}
-			//  路由消息
-			// -- 失败需要中断连接
-			err = ws.RouteMessage(m)
-			if err != nil {
-				return
-			}
+
 			if closeIfOverLimit(messageOverLimit) {
 				return
 			}

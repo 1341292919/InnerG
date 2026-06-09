@@ -113,3 +113,61 @@ CREATE TABLE InnerG.friend_request (
                                        INDEX idx_from_status (from_user, status),
                                        INDEX idx_to_status (to_user, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '好友申请表';
+
+-- 群组表
+CREATE TABLE InnerG.groups (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    group_id BIGINT NOT NULL UNIQUE COMMENT '群组ID（雪花ID）',
+    name VARCHAR(100) NOT NULL COMMENT '群组名称',
+    avatar VARCHAR(512) NULL COMMENT '群头像URL',
+    owner_id BIGINT NOT NULL COMMENT '群主ID',
+    description VARCHAR(500) DEFAULT '' COMMENT '群简介',
+    member_count INT DEFAULT 0 NOT NULL COMMENT '当前成员数',
+    max_members INT DEFAULT 200 NOT NULL COMMENT '最大成员数',
+    announcement TEXT NULL COMMENT '群公告（预留）',
+    join_mode TINYINT DEFAULT 0 NOT NULL COMMENT '加入方式：0-需审批，1-直接加入（预留）',
+    mute_all TINYINT DEFAULT 0 NOT NULL COMMENT '全员禁言：0-否，1-是（预留）',
+    settings JSON NULL COMMENT '群设置扩展字段（预留）',
+    created_at BIGINT NOT NULL COMMENT '创建时间戳',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
+    INDEX idx_owner (owner_id),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '群组表';
+
+-- 群成员表
+CREATE TABLE InnerG.group_members (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    group_id BIGINT NOT NULL COMMENT '群组ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    joined_at BIGINT NOT NULL COMMENT '加入时间戳',
+    role TINYINT DEFAULT 0 NOT NULL COMMENT '角色：0-普通成员，1-管理员，2-群主（预留）',
+    nickname VARCHAR(50) NULL COMMENT '群昵称（预留）',
+    muted TINYINT DEFAULT 0 NOT NULL COMMENT '是否禁言：0-否，1-是（预留）',
+    mute_until BIGINT NULL COMMENT '禁言截止时间戳（预留）',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
+    UNIQUE KEY uk_group_user (group_id, user_id),
+    INDEX idx_user_groups (user_id),
+    INDEX idx_group_members (group_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '群成员表';
+
+-- 群消息表
+CREATE TABLE InnerG.group_messages (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    msg_id VARCHAR(64) NOT NULL UNIQUE COMMENT '消息ID（雪花ID）',
+    group_id BIGINT NOT NULL COMMENT '群组ID',
+    from_user BIGINT NOT NULL COMMENT '发送者ID',
+    content TEXT NOT NULL COMMENT '消息内容',
+    type TINYINT NOT NULL DEFAULT 1 COMMENT '1-文本，2-图片，3-视频，4-系统消息',
+    status TINYINT NOT NULL DEFAULT 0 COMMENT '0-正常，2-已撤回（预留），4-已删除',
+    recalled_at BIGINT NULL COMMENT '撤回时间戳（预留）',
+    mentioned_users JSON NULL COMMENT '被@的用户ID列表（预留）',
+    created_at BIGINT NOT NULL COMMENT '消息时间戳',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME NULL,
+    INDEX idx_group_time (group_id, created_at),
+    INDEX idx_created_at (created_at),
+    INDEX idx_msg_id (msg_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '群消息表';

@@ -79,3 +79,7 @@ func NewWebSocketDBClient() _interface.WebSocketDB {
 func NewFriendDBClient() _interface.FriendDB {
 	return NewFriendDB(_db)
 }
+
+func NewGroupDBClient() _interface.GroupDB {
+	return NewGroupDB(_db)
+}

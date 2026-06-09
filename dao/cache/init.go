@@ -38,3 +38,7 @@ func NewMusicRedisClient() _interface.MusicCache { return NewMusicCache(_Ca) }
 func NewWebsocketRedisClient() _interface.WebSocketCache {
 	return NewWebsocketCache(_Ca)
 }
+
+func NewGroupCacheClient() _interface.GroupCache {
+	return NewGroupCache(_Ca)
+}

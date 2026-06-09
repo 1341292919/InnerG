@@ -2,10 +2,10 @@ package message
 
 import "github.com/goccy/go-json"
 
-type Message struct {
+type GroupMessage struct {
 	ID        string `json:"id"`
 	UserID    int64  `json:"user_id"`
-	TargetID  int64  `json:"target_id"`
+	GroupID   int64  `json:"group_id"`
 	Content   string `json:"content"`
 	Type      int8   `json:"type"`
 	Status    int8   `json:"status"`
@@ -13,6 +13,11 @@ type Message struct {
 	CreatedAt int64  `json:"created_at"`
 }
 
-func (m Message) JsonContent() ([]byte, error) {
+type GroupOfflineMessage struct {
+	Message       GroupMessage `json:"message"`
+	TargetUserIDs []int64      `json:"target_user_ids"`
+}
+
+func (m GroupMessage) JsonContent() ([]byte, error) {
 	return json.Marshal(m)
 }

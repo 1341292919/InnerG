@@ -25,6 +25,8 @@ type WebsocketConsume struct {
 	offlineConsumeNum       int
 	storeConsumeNum         int
 	friendRequestConsumeNum int
+	groupOfflineConsumeNum  int
+	groupStoreConsumeNum    int
 }
 
 func NewWebsocketConsume() *WebsocketConsume {
@@ -33,11 +35,15 @@ func NewWebsocketConsume() *WebsocketConsume {
 			offlineConsumeNum:       constants.OfflineConsumerNum,
 			storeConsumeNum:         constants.StoreConsumerNum,
 			friendRequestConsumeNum: constants.FriendRequestConsumerNum,
+			groupOfflineConsumeNum:  constants.GroupOfflineConsumerNum,
+			groupStoreConsumeNum:    constants.GroupStoreConsumerNum,
 		}
 		WsConsume.consumerList = make([]*mq.Consumer,
 			WsConsume.offlineConsumeNum+
 				WsConsume.storeConsumeNum+
-				WsConsume.friendRequestConsumeNum,
+				WsConsume.friendRequestConsumeNum+
+				WsConsume.groupOfflineConsumeNum+
+				WsConsume.groupStoreConsumeNum,
 		)
 		for i := 0; i < WsConsume.offlineConsumeNum; i++ {
 			c, err := mq.NewConsumer(
@@ -70,10 +76,34 @@ func NewWebsocketConsume() *WebsocketConsume {
 			}
 			WsConsume.consumerList[i] = c
 		}
+		start += WsConsume.friendRequestConsumeNum
+		for i := start; i < start+WsConsume.groupOfflineConsumeNum; i++ {
+			c, err := mq.NewConsumer(
+				constants.WebsocketService,
+				constants.GroupOfflineQueueName,
+				constants.GroupOfflineMessageTopic)
+			if err != nil {
+				panic(fmt.Errorf("Init WebsocketConsume groupOffline[%d]: %w", i-start, err))
+			}
+			WsConsume.consumerList[i] = c
+		}
+		start += WsConsume.groupOfflineConsumeNum
+		for i := start; i < start+WsConsume.groupStoreConsumeNum; i++ {
+			c, err := mq.NewConsumer(
+				constants.WebsocketService,
+				constants.GroupStoreQueueName,
+				constants.GroupStoreMessageTopic)
+			if err != nil {
+				panic(fmt.Errorf("Init WebsocketConsume groupStore[%d]: %w", i-start, err))
+			}
+			WsConsume.consumerList[i] = c
+		}
 		TaskMapping = map[string]mq.Handler{
 			constants.OfflineConsumeQueueTopic:       OfflineMessageHandler,
 			constants.StoreConsumeQueueTopic:         StoreMessageHandler,
 			constants.FriendRequestConsumeQueueTopic: FriendRequestEventHandler,
+			constants.GroupOfflineQueueName:          GroupOfflineMessageHandler,
+			constants.GroupStoreQueueName:            GroupStoreMessageHandler,
 		}
 	})
 	return WsConsume
@@ -141,6 +171,60 @@ func FriendRequestEventHandler(d rabbitmq.Delivery) rabbitmq.Action {
 	return rabbitmq.Ack
 }
 
+func GroupOfflineMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
+	var groupOffline message.GroupOfflineMessage
+	if err := json.Unmarshal(d.Body, &groupOffline); err != nil {
+		logWebsocketConsumeError("GroupOfflineMessageHandler: ", err)
+		return rabbitmq.Ack
+	}
+
+	websocketDao := dao.NewWebsocketDao()
+	for _, userID := range groupOffline.TargetUserIDs {
+		m := groupMessageToPrivateMessage(groupOffline.Message, userID)
+		if err := websocketDao.Cache.AddOfflineMessage(context.Background(), fmt.Sprintf("offlineM:%d", userID), &m); err != nil {
+			logWebsocketConsumeError("GroupOfflineMessageHandler:AddOfflineMessage: ", err)
+			return rabbitmq.NackRequeue
+		}
+	}
+	return rabbitmq.Ack
+}
+
+func GroupStoreMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
+	var m message.GroupMessage
+	if err := json.Unmarshal(d.Body, &m); err != nil {
+		logWebsocketConsumeError("GroupStoreMessageHandler: ", err)
+		return rabbitmq.Ack
+	}
+
+	groupDao := dao.NewGroupDao()
+	if err := groupDao.Db.InsertGroupMessage(context.Background(), &model.GroupMessage{
+		MsgID:     m.ID,
+		GroupID:   m.GroupID,
+		FromUser:  m.UserID,
+		Content:   m.Content,
+		Type:      m.Type,
+		Status:    m.Status,
+		CreatedAt: m.CreatedAt,
+	}); err != nil {
+		logWebsocketConsumeError("GroupStoreMessageHandler:InsertGroupMessage: ", err)
+		return rabbitmq.NackRequeue
+	}
+	return rabbitmq.Ack
+}
+
+func groupMessageToPrivateMessage(m message.GroupMessage, targetUserID int64) message.Message {
+	return message.Message{
+		ID:        m.ID,
+		UserID:    m.UserID,
+		TargetID:  m.GroupID,
+		Content:   m.Content,
+		Type:      m.Type,
+		Status:    m.Status,
+		ChatType:  m.ChatType,
+		CreatedAt: m.CreatedAt,
+	}
+}
+
 func logWebsocketConsumeError(v ...interface{}) {
 	if logger.Log == nil {
 		return
@@ -150,8 +234,9 @@ func logWebsocketConsumeError(v ...interface{}) {
 
 func (w *WebsocketConsume) Run() {
 	for i := 0; i < len(w.consumerList); i++ {
+		consumer := w.consumerList[i]
 		go func() {
-			err := w.consumerList[i].Run(TaskMapping[w.consumerList[i].Queue])
+			err := consumer.Run(TaskMapping[consumer.Queue])
 			if err != nil {
 				logger.Log.Error("Run: ", err)
 			}
