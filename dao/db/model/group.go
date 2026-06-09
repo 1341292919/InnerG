@@ -48,9 +48,9 @@ func (GroupMember) TableName() string {
 }
 
 type GroupMessage struct {
-	ID             int64          `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
+	ID             int64          `gorm:"primaryKey;column:id" json:"id"`
 	MsgID          string         `gorm:"type:varchar(64);not null;uniqueIndex;column:msg_id;index:idx_msg_id" json:"msg_id"`
-	GroupID        int64          `gorm:"type:bigint;not null;column:group_id;index:idx_group_time,priority:1" json:"group_id"`
+	GroupID        int64          `gorm:"type:bigint;not null;column:group_id;index:idx_group_id,priority:1;index:idx_group_time,priority:1" json:"group_id"`
 	FromUser       int64          `gorm:"type:bigint;not null;column:from_user" json:"from_user"`
 	Content        string         `gorm:"type:text;not null;column:content" json:"content"`
 	Type           int8           `gorm:"type:tinyint;not null;default:1;column:type" json:"type"`

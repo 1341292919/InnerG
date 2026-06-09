@@ -73,20 +73,21 @@ CREATE TABLE InnerG.playlist_songs
 
 
 CREATE TABLE InnerG.messages (
-                                  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                                  id BIGINT PRIMARY KEY,                    -- 雪花ID作为主键
                                   msg_id VARCHAR(64) NOT NULL,              -- 客户端生成的消息ID
                                  from_user BIGINT NOT NULL,                -- 发送者
                                  to_user BIGINT NOT NULL,                  -- 接收者
                                  content TEXT NOT NULL,                    -- 消息内容
                                  type TINYINT NOT NULL DEFAULT 1,          -- 消息类型
-                                 status TINYINT NOT NULL DEFAULT 0,        -- 0=已推送 1=未推送 2=已撤回 4=用户已删除
+                                 status TINYINT NOT NULL DEFAULT 0,        -- 0=正常 2=已撤回 4=用户已删除
                                  created_at BIGINT NOT NULL,               -- 消息时间戳
                                  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                  deleted_at DATETIME NULL,
                                  INDEX idx_from_to (from_user, to_user),
                                  INDEX idx_to_from (to_user, from_user),
-                                  INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                                 INDEX idx_to_user_id (to_user, id),       -- 游标查询索引
+                                 INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '私聊消息表（使用雪花ID）';
 
 CREATE TABLE InnerG.friend (
                                id BIGINT PRIMARY KEY COMMENT '雪花ID',
@@ -155,8 +156,8 @@ CREATE TABLE InnerG.group_members (
 
 -- 群消息表
 CREATE TABLE InnerG.group_messages (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    msg_id VARCHAR(64) NOT NULL UNIQUE COMMENT '消息ID（雪花ID）',
+    id BIGINT PRIMARY KEY COMMENT '雪花ID作为主键',
+    msg_id VARCHAR(64) NOT NULL UNIQUE COMMENT '客户端生成的消息ID',
     group_id BIGINT NOT NULL COMMENT '群组ID',
     from_user BIGINT NOT NULL COMMENT '发送者ID',
     content TEXT NOT NULL COMMENT '消息内容',
@@ -168,6 +169,6 @@ CREATE TABLE InnerG.group_messages (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME NULL,
     INDEX idx_group_time (group_id, created_at),
-    INDEX idx_created_at (created_at),
-    INDEX idx_msg_id (msg_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '群消息表';
+    INDEX idx_group_id (group_id, id),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '群消息表（使用雪花ID）';

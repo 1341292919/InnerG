@@ -132,7 +132,16 @@ func StoreMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
 		logger.Log.Error("StoreMessageHandler: ", err)
 		return rabbitmq.NackRequeue
 	}
+
+	// 生成雪花ID
+	snowflakeID, err := GenerateMessageID()
+	if err != nil {
+		logger.Log.Error("StoreMessageHandler: generate snowflake ID error: ", err)
+		return rabbitmq.NackRequeue
+	}
+
 	dbM := &model.Message{
+		ID:        snowflakeID,
 		Content:   m.Content,
 		FromUser:  m.UserID,
 		ToUser:    m.TargetID,
@@ -196,8 +205,16 @@ func GroupStoreMessageHandler(d rabbitmq.Delivery) rabbitmq.Action {
 		return rabbitmq.Ack
 	}
 
+	// 生成雪花ID
+	snowflakeID, err := GenerateMessageID()
+	if err != nil {
+		logWebsocketConsumeError("GroupStoreMessageHandler: generate snowflake ID error: ", err)
+		return rabbitmq.NackRequeue
+	}
+
 	groupDao := dao.NewGroupDao()
 	if err := groupDao.Db.InsertGroupMessage(context.Background(), &model.GroupMessage{
+		ID:        snowflakeID,
 		MsgID:     m.ID,
 		GroupID:   m.GroupID,
 		FromUser:  m.UserID,

@@ -5,11 +5,10 @@ const (
 )
 
 const (
-	MessagePushedStatus   = 0
-	MessageUnPushedStatus = 1
-	MessageReceivedStatus = 3
-	MessageRecalledStatus = 2
-	MessageDeletedStatus  = 4
+	// 消息状态
+	MessageStatusNormal   = 0 // 正常
+	MessageRecalledStatus = 2 // 已撤回
+	MessageDeletedStatus  = 4 // 已删除
 )
 
 const (

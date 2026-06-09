@@ -28,28 +28,24 @@ func (ws *WebSocketSrv) RouteGroupMessage(ctx context.Context, msg *message.Grou
 		return fmt.Errorf("invalid message type: %d", msg.Type)
 	}
 
-	msg.Status = constants.MessagePushedStatus
-	onlineSet := ws.broadcastToOnlineMembers(msg)
-
-	if err := ws.sendOfflineMessages(ctx, msg, onlineSet); err != nil {
-		return err
-	}
-
+	// 1. 先持久化消息
+	msg.Status = constants.GroupMessageStatusNormal
 	if err = ws.sender.SendMessage(constants.GroupStoreMessageTopic, msg); err != nil {
 		logger.Log.Error("RouteGroupMessage:GroupStoreMessageTopic: ", err)
 		return err
 	}
 
+	// 2. 尽力而为地广播给在线成员
+	ws.broadcastToOnlineMembers(msg)
+
+	// 不再发送离线消息到队列，客户端重连时通过游标同步获取
 	return nil
 }
 
-func (ws *WebSocketSrv) broadcastToOnlineMembers(msg *message.GroupMessage) map[int64]struct{} {
+func (ws *WebSocketSrv) broadcastToOnlineMembers(msg *message.GroupMessage) {
 	onlineMembers := ws.groupManager.GetOnlineMembers(msg.GroupID)
-	onlineSet := make(map[int64]struct{}, len(onlineMembers)+1)
-	onlineSet[msg.UserID] = struct{}{}
 
 	for _, memberID := range onlineMembers {
-		onlineSet[memberID] = struct{}{}
 		if memberID == msg.UserID {
 			continue
 		}
@@ -59,61 +55,20 @@ func (ws *WebSocketSrv) broadcastToOnlineMembers(msg *message.GroupMessage) map[
 		}
 		if err := conn.WriteJSONData(msg); err != nil {
 			logger.Log.Errorf("broadcastToOnlineMembers:WriteJSONData: user_id=%d err=%v", memberID, err)
+			// 推送失败，客户端会通过游标同步补齐
 		}
 	}
-	return onlineSet
-}
-
-func (ws *WebSocketSrv) sendOfflineMessages(ctx context.Context, msg *message.GroupMessage, onlineSet map[int64]struct{}) error {
-	allMembers, err := ws.getGroupMembersWithCache(ctx, msg.GroupID)
-	if err != nil {
-		logger.Log.Errorf("sendOfflineMessages:getGroupMembersWithCache: %v", err)
-		return fmt.Errorf("failed to get group members")
-	}
-
-	offlineMembers := make([]int64, 0, len(allMembers))
-	for _, memberID := range allMembers {
-		if _, ok := onlineSet[memberID]; !ok {
-			offlineMembers = append(offlineMembers, memberID)
-		}
-	}
-
-	if len(offlineMembers) == 0 {
-		return nil
-	}
-
-	msg.Status = constants.MessageUnPushedStatus
-	if err = ws.sender.SendMessage(constants.GroupOfflineMessageTopic, message.GroupOfflineMessage{
-		Message:       *msg,
-		TargetUserIDs: offlineMembers,
-	}); err != nil {
-		logger.Log.Error("sendOfflineMessages:GroupOfflineMessageTopic: ", err)
-		return err
-	}
-	msg.Status = constants.MessagePushedStatus
-	return nil
-}
-
-func (ws *WebSocketSrv) getGroupMembersWithCache(ctx context.Context, groupID int64) ([]int64, error) {
-	groupDao := dao.NewGroupDao()
-
-	cached, err := groupDao.Cache.GetGroupMembers(ctx, groupID)
-	if err == nil && len(cached) > 0 {
-		return cached, nil
-	}
-
-	members, err := groupDao.Db.GetGroupMemberIDs(ctx, groupID)
-	if err != nil {
-		return nil, err
-	}
-
-	_ = groupDao.Cache.SetGroupMembers(ctx, groupID, members, constants.GroupMembersCacheTTL)
-	return members, nil
 }
 
 func (ws *WebSocketSrv) BroadcastGroupSystemMessage(ctx context.Context, groupID int64, content string) error {
-	groupDao := dao.NewGroupDao()
 	now := time.Now().Unix()
+
+	// 生成雪花ID
+	snowflakeID, err := GenerateMessageID()
+	if err != nil {
+		logger.Log.Errorf("BroadcastGroupSystemMessage: generate snowflake ID error: %v", err)
+		snowflakeID = now // 降级使用时间戳
+	}
 
 	sysMsg := &message.GroupMessage{
 		ID:        fmt.Sprintf("sys_%d", now),
@@ -134,7 +89,9 @@ func (ws *WebSocketSrv) BroadcastGroupSystemMessage(ctx context.Context, groupID
 		}
 	}
 
+	groupDao := dao.NewGroupDao()
 	if err := groupDao.Db.InsertGroupMessage(ctx, &model.GroupMessage{
+		ID:        snowflakeID,
 		MsgID:     sysMsg.ID,
 		GroupID:   groupID,
 		FromUser:  0,

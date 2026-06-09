@@ -34,15 +34,9 @@ func (ws *WebSocketSrv) GetMessagesByTimeRange(ctx context.Context, userID, targ
 	return websocketDao.Db.GetMessagesByTimeRange(ctx, userID, targetID, after, before, pageSize, pageNum)
 }
 
-func (ws *WebSocketSrv) GetUnreadMessages(ctx context.Context, userID int64) ([]*model.Message, error) {
-	websocketDao := dao.NewWebsocketDao()
-	return websocketDao.Db.GetOfflineMessages(ctx, userID, constants.OnceOffMessagePushNum)
-}
-
-// AckMessages ack消息，避免连接波动导致消息实际上未被接收到
-func (ws *WebSocketSrv) AckMessages(ctx context.Context, userID int64, msgIDs []string) error {
-	websocketDao := dao.NewWebsocketDao()
-	return websocketDao.Db.AckMessages(ctx, userID, msgIDs)
+// SyncMessagesHTTP 通过HTTP接口进行游标同步（合并私聊+群聊）
+func (ws *WebSocketSrv) SyncMessagesHTTP(ctx context.Context, userID, lastID int64, limit int) (*SyncResponse, error) {
+	return ws.SyncMessages(ctx, userID, lastID, limit)
 }
 
 func (ws *WebSocketSrv) CreateTicket(ctx context.Context, userID int64) (string, error) {

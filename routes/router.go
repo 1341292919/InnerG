@@ -93,8 +93,7 @@ func NewRouter() *gin.Engine {
 
 			authed.POST("ws/ticket", api.CreateWebSocketTicket())
 			authed.GET("ws/messages", api.GetWebSocketMessages())
-			authed.GET("ws/unread", api.GetWebSocketUnread())
-			authed.POST("ws/messages/ack", api.AckWebSocketMessages())
+			authed.GET("ws/sync", api.SyncMessages())
 			authed.POST("ws/upload/image", api.UploadWebsocketImage())
 			authed.POST("ws/upload/video", api.UploadWebsocketVideo())
 

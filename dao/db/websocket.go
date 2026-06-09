@@ -29,12 +29,12 @@ func (db *webSocketDB) InsertMessage(ctx context.Context, msg *model.Message) er
 	return nil
 }
 
-// GetOfflineMessages 查询 to_user 未确认接收的离线消息。
+// GetOfflineMessages 查询 to_user 的离线消息（Deprecated: 建议使用游标同步）
 func (db *webSocketDB) GetOfflineMessages(ctx context.Context, toUser int64, limit int) ([]*model.Message, error) {
 	var messages []*model.Message
 	err := db.client.WithContext(ctx).
 		Table(constants.MessageTableName).
-		Where("to_user = ? AND status IN ?", toUser, []int8{constants.MessageUnPushedStatus, constants.MessagePushedStatus}).
+		Where("to_user = ? AND status = ?", toUser, constants.MessageStatusNormal).
 		Order("created_at ASC").
 		Limit(limit).
 		Find(&messages).Error
@@ -87,32 +87,39 @@ func (db *webSocketDB) UpdateMessageStatus(ctx context.Context, msgID int64, sta
 	return nil
 }
 
-// BatchUpdateMessageStatus 批量更新消息状态（标记已推送）
+// BatchUpdateMessageStatus 批量更新消息状态
 func (db *webSocketDB) BatchUpdateMessageStatus(ctx context.Context, msgIDs []int64, status int8) error {
-	query := db.client.WithContext(ctx).
+	err := db.client.WithContext(ctx).
 		Table(constants.MessageTableName).
-		Where("id IN ?", msgIDs)
-	if status == constants.MessagePushedStatus {
-		query = query.Where("status IN ?", []int8{constants.MessageUnPushedStatus, constants.MessagePushedStatus})
-	}
-	err := query.Update("status", status).Error
+		Where("id IN ?", msgIDs).
+		Update("status", status).Error
 	if err != nil {
 		return errno.NewErr(errno.MySQLDBErrorCode, "BatchUpdateMessageStatus: "+err.Error())
 	}
 	return nil
 }
 
-// AckMessages 将当前用户已确认接收的消息推进到 received，重复 ACK 保持幂等。
+// AckMessages Deprecated: ACK 机制已废弃，使用游标同步替代
 func (db *webSocketDB) AckMessages(ctx context.Context, toUser int64, msgIDs []string) error {
-	if len(msgIDs) == 0 {
-		return nil
-	}
+	// 空实现，保持接口兼容
+	return nil
+}
+
+// GetMessagesAfterID 获取指定游标之后的消息（用于增量同步）
+func (db *webSocketDB) GetMessagesAfterID(ctx context.Context, userID, lastID int64, limit int) ([]*model.Message, error) {
+	var messages []*model.Message
+
 	err := db.client.WithContext(ctx).
 		Table(constants.MessageTableName).
-		Where("to_user = ? AND msg_id IN ? AND status IN ?", toUser, msgIDs, []int8{constants.MessageUnPushedStatus, constants.MessagePushedStatus}).
-		Update("status", constants.MessageReceivedStatus).Error
+		Where("(to_user = ? OR from_user = ?) AND id > ? AND status NOT IN ?",
+			userID, userID, lastID,
+			[]int8{constants.MessageRecalledStatus, constants.MessageDeletedStatus}).
+		Order("id ASC").
+		Limit(limit + 1). // 多查一条用于判断 has_more
+		Find(&messages).Error
+
 	if err != nil {
-		return errno.NewErr(errno.MySQLDBErrorCode, "AckMessages: "+err.Error())
+		return nil, errno.NewErr(errno.MySQLDBErrorCode, "GetMessagesAfterID: "+err.Error())
 	}
-	return nil
+	return messages, nil
 }

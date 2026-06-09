@@ -14,6 +14,7 @@ type WebSocketDB interface {
 	UpdateMessageStatus(ctx context.Context, msgID int64, status int8) error
 	BatchUpdateMessageStatus(ctx context.Context, msgIDs []int64, status int8) error
 	AckMessages(ctx context.Context, toUser int64, msgIDs []string) error
+	GetMessagesAfterID(ctx context.Context, userID, lastID int64, limit int) ([]*model.Message, error)
 }
 
 type WebSocketCache interface {

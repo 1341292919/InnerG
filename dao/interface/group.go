@@ -27,6 +27,7 @@ type GroupDB interface {
 	InsertGroupMessage(ctx context.Context, msg *model.GroupMessage) error
 	GetGroupMessages(ctx context.Context, groupID int64, before int64, page, pageSize int) ([]*model.GroupMessage, int64, error)
 	GetGroupMessageByMsgID(ctx context.Context, msgID string) (*model.GroupMessage, error)
+	GetGroupMessagesAfterID(ctx context.Context, userID, lastID int64, limit int) ([]*model.GroupMessage, error)
 }
 
 type GroupCache interface {

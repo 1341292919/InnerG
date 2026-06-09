@@ -177,3 +177,23 @@ func (g *GroupDB) GetGroupMessageByMsgID(ctx context.Context, msgID string) (*mo
 	}
 	return &msg, nil
 }
+
+// GetGroupMessagesAfterID 获取用户所在群的增量消息（基于雪花ID游标）
+func (g *GroupDB) GetGroupMessagesAfterID(ctx context.Context, userID, lastID int64, limit int) ([]*model.GroupMessage, error) {
+	var messages []*model.GroupMessage
+
+	err := g.db.WithContext(ctx).
+		Table(constants.GroupMessageTableName+" gm").
+		Joins("INNER JOIN "+constants.GroupMemberTableName+" gm2 ON gm.group_id = gm2.group_id").
+		Where("gm2.user_id = ? AND gm.id > ? AND gm.status = ?",
+			userID, lastID, constants.GroupMessageStatusNormal).
+		Select("gm.*").
+		Order("gm.id ASC").
+		Limit(limit + 1). // 多查一条用于判断 has_more
+		Find(&messages).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return messages, nil
+}

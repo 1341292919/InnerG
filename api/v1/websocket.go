@@ -86,40 +86,6 @@ func GetWebSocketMessages() gin.HandlerFunc {
 	}
 }
 
-func GetWebSocketUnread() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		uid := ctl.GetUserInfo(ctx.Request.Context()).Id
-		srv := service.NewWebSocketSrv()
-		msgs, err := srv.GetUnreadMessages(ctx.Request.Context(), uid)
-		if err != nil {
-			pack.RespError(ctx, err)
-			return
-		}
-		pack.RespData(ctx, types.GetUnreadResp{
-			Messages: pack.BuildMessageList(msgs),
-			Total:    len(msgs),
-		})
-	}
-}
-
-func AckWebSocketMessages() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		var req types.AckMessagesReq
-		if err := ctx.ShouldBindJSON(&req); err != nil {
-			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
-			return
-		}
-
-		uid := ctl.GetUserInfo(ctx.Request.Context()).Id
-		if err := service.NewWebSocketSrv().AckMessages(ctx.Request.Context(), uid, req.MessageIDs); err != nil {
-			pack.RespError(ctx, err)
-			return
-		}
-
-		pack.RespSuccess(ctx)
-	}
-}
-
 func CreateWebSocketTicket() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		uid := ctl.GetUserInfo(ctx.Request.Context()).Id

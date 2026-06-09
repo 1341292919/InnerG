@@ -7,6 +7,7 @@ import (
 	"InnerG/pkg/constants"
 	"InnerG/pkg/ctl"
 	"InnerG/pkg/logger"
+	"InnerG/pkg/utils"
 	rootservice "InnerG/service"
 	"InnerG/service/websocket/manager"
 	"InnerG/service/websocket/message"
@@ -21,6 +22,30 @@ import (
 
 var WebSocketSrvIns *WebSocketSrv
 var WebSocketSrvOnce sync.Once
+var messageSnowflake *utils.Snowflake // 消息专用雪花ID生成器
+var messageSnowflakeOnce sync.Once    // 保证只初始化一次
+
+// initMessageSnowflake 延迟初始化雪花ID生成器
+func initMessageSnowflake() {
+	messageSnowflakeOnce.Do(func() {
+		var err error
+		messageSnowflake, err = utils.NewSnowflake(
+			config.Snowflake.DatancenterID,
+			config.Snowflake.WorkerID,
+		)
+		if err != nil {
+			panic(fmt.Errorf("init message snowflake: %w", err))
+		}
+	})
+}
+
+// GenerateMessageID 生成消息雪花ID
+func GenerateMessageID() (int64, error) {
+	if messageSnowflake == nil {
+		initMessageSnowflake()
+	}
+	return messageSnowflake.NextVal()
+}
 
 var isFriend = func(ctx context.Context, userID, targetID int64) (bool, error) {
 	return rootservice.GetFriendSrv().IsFriend(ctx, userID, targetID)
@@ -73,29 +98,7 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 		LastActive: time.Now(),
 	}
 
-	// 先推送离线消息，再注册连接，确保消息顺序：离线 -> 实时
-	websocketDao := dao.NewWebsocketDao()
-	mList, err := websocketDao.Db.GetOfflineMessages(ctx, uid, constants.OnceOffMessagePushNum)
-	if err != nil {
-		logger.Log.Error("GetOfflineMessages: ", err)
-	}
-	if len(mList) > 0 {
-		err = conn.WriteJSONData(mList)
-		if err != nil {
-			logger.Log.Error("Failed to push offline messages: ", err)
-			return
-		}
-		ids := make([]int64, len(mList))
-		for i := range mList {
-			ids[i] = mList[i].ID
-		}
-		err = websocketDao.Db.BatchUpdateMessageStatus(ctx, ids, constants.MessagePushedStatus)
-		if err != nil {
-			logger.Log.Error("Failed to push offline messages: ", err)
-			return
-		}
-	}
-
+	// 订阅用户所属的所有群组
 	groupDao := dao.NewGroupDao()
 	groupIDs, err := groupDao.Db.GetUserGroupIDs(ctx, uid)
 	if err != nil {
@@ -104,7 +107,7 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 		ws.groupManager.SubscribeUser(uid, groupIDs)
 	}
 
-	// 离线消息推完后再注册，后续 RouteMessage 推送的实时消息都排在后面
+	// 注册连接
 	ws.manager.AddConnection(&conn)
 	defer func() {
 		ws.manager.RemoveConnection(&conn)
@@ -128,6 +131,32 @@ func (ws *WebSocketSrv) NewConnection(ctx context.Context, connect *websocket.Co
 		messageOverLimit := !messageLimiter.Allow()
 		switch t {
 		case websocket.TextMessage:
+			// 先尝试解析为同步请求
+			var syncReq SyncRequest
+			if err := json.Unmarshal(body, &syncReq); err == nil && syncReq.Action == "sync" {
+				// 处理游标同步请求
+				resp, err := ws.SyncMessages(ctx, uid, syncReq.LastID, syncReq.Limit)
+				if err != nil {
+					logger.Log.Errorf("NewConnection:SyncMessages error: %v", err)
+					if closeIfOverLimit(messageOverLimit) {
+						return
+					}
+					continue
+				}
+				if err := conn.WriteJSONData(resp); err != nil {
+					logger.Log.Errorf("NewConnection:WriteSyncResponse error: %v", err)
+					if closeIfOverLimit(messageOverLimit) {
+						return
+					}
+					continue
+				}
+				if closeIfOverLimit(messageOverLimit) {
+					return
+				}
+				continue
+			}
+
+			// 否则按照普通消息处理
 			var m message.Message
 			err = json.Unmarshal(body, &m)
 			if err != nil {
@@ -207,40 +236,34 @@ func closeRateLimitedConnection(connect *websocket.Conn, uid int64) {
 	)
 }
 
+// RouteMessage 路由私聊消息（简化版：持久化 + 尽力推送）
 // 从消息结构创建高频的特点 这里选择传入 message.Message 而不是 *message.Message
 // GC 友好？
 func (ws *WebSocketSrv) RouteMessage(m message.Message) error {
-	pushed := false
-	// 在线直接推送
-	if ws.manager.IsConnected(ws.manager.WithConnectionId(m.TargetID)) {
-		c := ws.manager.GetConnection(ws.manager.WithConnectionId(m.TargetID))
-		content, err := m.JsonContent()
-		if err != nil {
-			logger.Log.Error("RouteMessage:JsonContent: ", err)
-			return err
-		}
-		err = c.WriteData(content)
-		if err != nil {
-			logger.Log.Error("RouteMessage:WriteMessage: ", err)
-			return err
-		}
-		pushed = true
-	}
-	var err error
-	m.Status = constants.MessagePushedStatus
-	// 加入消息队列
-	// 离线消息
-	if !pushed {
-		m.Status = constants.MessageUnPushedStatus
-		if err = ws.sender.SendMessage(constants.OfflineMessageTopic, m); err != nil {
-			logger.Log.Error("RouteMessage:TaskQueue:SendMessage: ", err)
-			return err
-		}
-	}
-	//  持久化消息
-	if err = ws.sender.SendMessage(constants.StoreMessageTopic, m); err != nil {
-		logger.Log.Error("RouteMessage:TaskQueue:SendMessage: ", err)
+	// 1. 先持久化消息（发送到存储队列）
+	m.Status = constants.MessageStatusNormal
+	if err := ws.sender.SendMessage(constants.StoreMessageTopic, m); err != nil {
+		logger.Log.Error("RouteMessage: send to store queue error: ", err)
 		return err
 	}
+
+	// 2. 尽力而为的实时推送（如果接收方在线）
+	if ws.manager.IsConnected(ws.manager.WithConnectionId(m.TargetID)) {
+		c := ws.manager.GetConnection(ws.manager.WithConnectionId(m.TargetID))
+		if c != nil {
+			content, err := m.JsonContent()
+			if err != nil {
+				logger.Log.Error("RouteMessage:JsonContent: ", err)
+				// 持久化成功，推送失败不影响整体流程
+				return nil
+			}
+			err = c.WriteData(content)
+			if err != nil {
+				logger.Log.Error("RouteMessage:WriteMessage: ", err)
+				// 推送失败，客户端会通过游标同步补齐
+			}
+		}
+	}
+	// 不再发送离线消息到队列，客户端重连时通过游标同步获取
 	return nil
 }
