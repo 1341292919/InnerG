@@ -74,15 +74,14 @@ func GetGroups() gin.HandlerFunc {
 
 func GetGroupDetail() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		groupIDStr := ctx.Param("group_id")
-		groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
-		if err != nil {
-			pack.RespError(ctx, errno.ParamMissing.WithMessage("群组ID格式错误"))
+		var req types.GetGroupDetailReq
+		if err := ctx.ShouldBindQuery(&req); err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
 			return
 		}
 
 		groupSrv := service.GetGroupService()
-		group, err := groupSrv.GetGroupByID(ctx.Request.Context(), groupID)
+		group, err := groupSrv.GetGroupByID(ctx.Request.Context(), req.GroupID)
 		if err != nil {
 			pack.RespError(ctx, err)
 			return
@@ -103,13 +102,6 @@ func GetGroupDetail() gin.HandlerFunc {
 
 func UpdateGroup() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		groupIDStr := ctx.Param("group_id")
-		groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
-		if err != nil {
-			pack.RespError(ctx, errno.ParamMissing.WithMessage("群组ID格式错误"))
-			return
-		}
-
 		var req types.UpdateGroupReq
 		if err := ctx.ShouldBindJSON(&req); err != nil {
 			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
@@ -119,7 +111,7 @@ func UpdateGroup() gin.HandlerFunc {
 		userInfo := ctl.GetUserInfo(ctx)
 		groupSrv := service.GetGroupService()
 
-		err = groupSrv.UpdateGroup(ctx.Request.Context(), groupID, userInfo.Id, req.Name, req.Avatar, req.Description)
+		err := groupSrv.UpdateGroup(ctx.Request.Context(), req.GroupID, userInfo.Id, req.Name, req.Avatar, req.Description)
 		if err != nil {
 			pack.RespError(ctx, err)
 			return
@@ -131,17 +123,16 @@ func UpdateGroup() gin.HandlerFunc {
 
 func DeleteGroup() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		groupIDStr := ctx.Param("group_id")
-		groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
-		if err != nil {
-			pack.RespError(ctx, errno.ParamMissing.WithMessage("群组ID格式错误"))
+		var req types.DeleteGroupReq
+		if err := ctx.ShouldBindJSON(&req); err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
 			return
 		}
 
 		userInfo := ctl.GetUserInfo(ctx)
 		groupSrv := service.GetGroupService()
 
-		err = groupSrv.DeleteGroup(ctx.Request.Context(), groupID, userInfo.Id)
+		err := groupSrv.DeleteGroup(ctx.Request.Context(), req.GroupID, userInfo.Id)
 		if err != nil {
 			pack.RespError(ctx, err)
 			return
@@ -153,13 +144,6 @@ func DeleteGroup() gin.HandlerFunc {
 
 func AddGroupMembers() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		groupIDStr := ctx.Param("group_id")
-		groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
-		if err != nil {
-			pack.RespError(ctx, errno.ParamMissing.WithMessage("群组ID格式错误"))
-			return
-		}
-
 		var req types.AddGroupMembersReq
 		if err := ctx.ShouldBindJSON(&req); err != nil {
 			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
@@ -169,7 +153,7 @@ func AddGroupMembers() gin.HandlerFunc {
 		userInfo := ctl.GetUserInfo(ctx)
 		groupSrv := service.GetGroupService()
 
-		err = groupSrv.AddGroupMembers(ctx.Request.Context(), groupID, userInfo.Id, req.UserIDs)
+		err := groupSrv.AddGroupMembers(ctx.Request.Context(), req.GroupID, userInfo.Id, req.UserIDs)
 		if err != nil {
 			pack.RespError(ctx, err)
 			return
@@ -181,10 +165,9 @@ func AddGroupMembers() gin.HandlerFunc {
 
 func RemoveGroupMember() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		groupIDStr := ctx.Param("group_id")
-		groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
-		if err != nil {
-			pack.RespError(ctx, errno.ParamMissing.WithMessage("群组ID格式错误"))
+		var req types.RemoveGroupMemberReq
+		if err := ctx.ShouldBindJSON(&req); err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
 			return
 		}
 
@@ -198,7 +181,7 @@ func RemoveGroupMember() gin.HandlerFunc {
 		userInfo := ctl.GetUserInfo(ctx)
 		groupSrv := service.GetGroupService()
 
-		err = groupSrv.RemoveGroupMember(ctx.Request.Context(), groupID, userInfo.Id, targetUserID)
+		err = groupSrv.RemoveGroupMember(ctx.Request.Context(), req.GroupID, userInfo.Id, targetUserID)
 		if err != nil {
 			pack.RespError(ctx, err)
 			return
@@ -210,17 +193,16 @@ func RemoveGroupMember() gin.HandlerFunc {
 
 func QuitGroup() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		groupIDStr := ctx.Param("group_id")
-		groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
-		if err != nil {
-			pack.RespError(ctx, errno.ParamMissing.WithMessage("群组ID格式错误"))
+		var req types.QuitGroupReq
+		if err := ctx.ShouldBindJSON(&req); err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
 			return
 		}
 
 		userInfo := ctl.GetUserInfo(ctx)
 		groupSrv := service.GetGroupService()
 
-		err = groupSrv.QuitGroup(ctx.Request.Context(), groupID, userInfo.Id)
+		err := groupSrv.QuitGroup(ctx.Request.Context(), req.GroupID, userInfo.Id)
 		if err != nil {
 			pack.RespError(ctx, err)
 			return
@@ -232,15 +214,14 @@ func QuitGroup() gin.HandlerFunc {
 
 func GetGroupMembers() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		groupIDStr := ctx.Param("group_id")
-		groupID, err := strconv.ParseInt(groupIDStr, 10, 64)
-		if err != nil {
-			pack.RespError(ctx, errno.ParamMissing.WithMessage("群组ID格式错误"))
+		var req types.GetGroupMembersReq
+		if err := ctx.ShouldBindQuery(&req); err != nil {
+			pack.RespError(ctx, errno.ParamMissing.WithMessage(err.Error()))
 			return
 		}
 
-		page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
-		pageSize, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "50"))
+		page := req.Page
+		pageSize := req.PageSize
 		if page < 1 {
 			page = 1
 		}
@@ -249,7 +230,7 @@ func GetGroupMembers() gin.HandlerFunc {
 		}
 
 		groupSrv := service.GetGroupService()
-		members, total, err := groupSrv.GetGroupMembers(ctx.Request.Context(), groupID, page, pageSize)
+		members, total, err := groupSrv.GetGroupMembers(ctx.Request.Context(), req.GroupID, page, pageSize)
 		if err != nil {
 			pack.RespError(ctx, err)
 			return

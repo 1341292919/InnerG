@@ -98,20 +98,20 @@ func NewRouter() *gin.Engine {
 			authed.POST("ws/upload/video", api.UploadWebsocketVideo())
 
 			// 群组管理
-			authed.POST("groups", api.CreateGroup())
-			authed.GET("groups", api.GetGroups())
-			authed.GET("groups/:group_id", api.GetGroupDetail())
-			authed.PUT("groups/:group_id", api.UpdateGroup())
-			authed.DELETE("groups/:group_id", api.DeleteGroup())
+			authed.POST("group/create", api.CreateGroup())
+			authed.GET("group/list", api.GetGroups())
+			authed.GET("group/detail", api.GetGroupDetail())
+			authed.POST("group/update", api.UpdateGroup())
+			authed.POST("group/delete", api.DeleteGroup())
 
 			// 群成员管理
-			authed.POST("groups/:group_id/members", api.AddGroupMembers())
-			authed.DELETE("groups/:group_id/members/:user_id", api.RemoveGroupMember())
-			authed.DELETE("groups/:group_id/members/me", api.QuitGroup())
-			authed.GET("groups/:group_id/members", api.GetGroupMembers())
+			authed.POST("group/member/add", api.AddGroupMembers())
+			authed.POST("group/member/remove/:user_id", api.RemoveGroupMember())
+			authed.POST("group/member/quit", api.QuitGroup())
+			authed.GET("group/member/list", api.GetGroupMembers())
 
 			// 群消息
-			authed.GET("groups/messages", api.GetGroupMessages())
+			authed.GET("group/message/list", api.GetGroupMessages())
 		}
 
 		ws := v1.Group("ws")

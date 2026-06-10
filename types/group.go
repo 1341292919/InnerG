@@ -37,14 +37,38 @@ type GroupLastMessage struct {
 	CreatedAt int64  `json:"created_at"`
 }
 
+type GetGroupDetailReq struct {
+	GroupID int64 `form:"group_id" binding:"required"`
+}
+
 type UpdateGroupReq struct {
+	GroupID     int64   `json:"group_id" binding:"required"`
 	Name        *string `json:"name" binding:"omitempty,min=1,max=100"`
 	Avatar      *string `json:"avatar" binding:"omitempty,max=512"`
 	Description *string `json:"description" binding:"omitempty,max=500"`
 }
 
+type DeleteGroupReq struct {
+	GroupID int64 `json:"group_id" binding:"required"`
+}
+
 type AddGroupMembersReq struct {
+	GroupID int64   `json:"group_id" binding:"required"`
 	UserIDs []int64 `json:"user_ids" binding:"required,min=1"`
+}
+
+type RemoveGroupMemberReq struct {
+	GroupID int64 `json:"group_id" binding:"required"`
+}
+
+type QuitGroupReq struct {
+	GroupID int64 `json:"group_id" binding:"required"`
+}
+
+type GetGroupMembersReq struct {
+	GroupID  int64 `form:"group_id" binding:"required"`
+	Page     int   `form:"page"`
+	PageSize int   `form:"page_size"`
 }
 
 type GetGroupMembersResp struct {
